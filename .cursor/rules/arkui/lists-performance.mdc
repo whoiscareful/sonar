@@ -1,0 +1,93 @@
+---
+description: ArkUI 列表渲染、LazyForEach 与组件复用性能规范
+globs: sonar/**/*.ets
+alwaysApply: false
+---
+
+# ArkUI 列表与性能规范
+
+## 文档要点总览
+- 长列表必须用 `LazyForEach` + `IDataSource`，仅渲染可视区；短固定项可用 `ForEach`。
+- `Repeat`（API 12+）适合可复用模板的重复渲染；与 `@Reusable` 组合进一步降开销。
+- HDS 列表卡片/横滑删除见 `hds/list-card.mdc`；动画见 `arkui/animation.mdc`。
+
+## 渲染控制选型
+
+| 方式 | 适用 | 注意 |
+| --- | --- | --- |
+| `ForEach` | 少量静态项 | 全量 diff，数据量大勿用 |
+| `LazyForEach` | 长列表 | 必须唯一 **key** 生成函数 |
+| `Repeat` | 模板化重复 | 配合 `@Reusable` |
+
+```typescript
+class SongDataSource implements IDataSource {
+  private songs: Song[] = [];
+  totalCount(): number { return this.songs.length; }
+  getData(index: number): Song { return this.songs[index]; }
+  registerDataChangeListener(listener: DataChangeListener): void { /* ... */ }
+  unregisterDataChangeListener(listener: DataChangeListener): void { /* ... */ }
+}
+
+List() {
+  LazyForEach(this.dataSource, (song: Song) => {
+    ListItem() { SongRow({ song: song }) }
+  }, (song: Song) => song.id)
+}
+.cachedCount(5)
+.edgeEffect(EdgeEffect.Spring)
+```
+
+## `@Reusable` 列表项
+
+```typescript
+@Reusable
+@Component
+struct SongRow {
+  @State song: Song = new Song();
+
+  aboutToReuse(params: Record<string, Object>): void {
+    this.song = params.song as Song;
+  }
+
+  aboutToRecycle(): void {
+    // 释放封面 PixelMap 等
+  }
+
+  build() { /* ... */ }
+}
+```
+
+- 规则：同父组件内复用；禁止嵌套 `@Reusable`；key 稳定且唯一。
+
+## 懒加载与可见性
+
+```typescript
+Image(coverUrl)
+  .onVisibleAreaChange([0.0, 1.0], (visible: boolean, ratio: number) => {
+    if (visible && ratio >= 1.0) { this.loadCover(); }
+    if (!visible) { this.releaseCover(); }
+  })
+```
+
+- `Scroll` 内 `List` 必须 `.height(...)` 或 `.layoutWeight(1)`，否则非懒加载。
+- 图片列表：离屏释放 PixelMap，控内存峰值。
+
+## 性能清单
+- 列表项避免 `@Prop` 传递巨大对象 — 用 id + 查表或 `@ObjectLink`。
+- 避免 `@StorageLink` 高频字段（如毫秒级进度）触发全列表刷新。
+- 嵌套 `List` 慎用；优先单 List + 分组 `ListItemGroup`。
+- 滑动删除：HDS 卡片内置动效优先于自绘 `swipeAction` 混用。
+
+## 常见误区
+- `LazyForEach` key 用 index，重排后 UI 错乱。
+- 无 `@Reusable` 的复杂项在快速滑动时掉帧。
+- `ForEach` 渲染上千条导致 OOM。
+
+## 验收建议
+- 1000+ 项列表滑动无明显卡顿；内存不随滚动线性暴涨。
+- 插入/删除/重排后项与数据一致。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-rendering-control-lazyforeach
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-create-list
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-reusable

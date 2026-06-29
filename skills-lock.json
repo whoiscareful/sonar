@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "harmonyos-development": {
+      "source": "DengShiyingA/harmonyos-ai-skill",
+      "sourceType": "github",
+      "skillPath": "harmonyos-development/SKILL.md",
+      "computedHash": "3294a21238875d4fccf8a92d35d937ef9a3ac3b9404d0134ca83aa52acc04c4e"
+    }
+  }
+}

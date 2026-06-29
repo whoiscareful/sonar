@@ -1,0 +1,79 @@
+---
+description: Sonar 悬浮底栏/miniBar 历史回归与反模式（曾犯错误归档）
+globs: **/*FloatingTabBar*.ets,**/*Tab*.ets,**/Index.ets
+alwaysApply: false
+---
+
+# 悬浮底栏曾犯错误（归档）
+
+技术规范与正确做法见 `hds/tabs-bar-floating.mdc`。本节仅记录 Sonar 项目已踩坑，**禁止重复**。
+
+## 核心根因（一句话）
+
+`barWidth` 只约束页签胶囊；miniBar 须 `width('100%')` 随 HDS 槽位伸缩。勿自建 `miniBarCollapsed`、勿钉死展开宽、勿用 `onAreaChange` 推断槽位。
+
+## 问题根因（已验证）
+
+HDS 底部为 **页签栏 + miniBar 两段**，宽度由两套机制分别作用：
+
+1. **`barWidth` 只约束页签胶囊**，不约束 miniBar 占位宽度。
+2. miniBar 用 `MINI_PLAYER_CAPSULE_MAX_WIDTH`（320）且 `width('100%')` 时，播放区往往比页签 `barWidth` 更宽。
+3. 只改 `maxWidth` 不改 `width`：`width('100%')` 仍随容器变宽，视觉不受控。
+4. `onAreaChange` 打在 Row 上测不到 HDS mini 槽变宽；钉死 56/298 会盖住左侧页签圆球。
+5. `layoutWeight(1)` 文案在宽父级下占满整条底栏，向左盖住页签。
+6. `@State miniBarCollapsed` + `if/else` 两套 Builder → 无曲目展开无文案或误判折叠态。
+
+## 曾犯错误对照表
+
+| 现象 | 错误做法 | 正确做法 |
+| --- | --- | --- |
+| 导航短、播放长 | `barWidth` 272，`maxWidth` 320，且与页签不等 | 共用 `FLOATING_TAB_BAR_EXPANDED_WIDTH_*`，mini `width('100%')` |
+| 修复后播放更长 | 分档提到 300/316/332 | 过长后勿再加；微调三档 **±8～12vp 同加** |
+| 只改 maxWidth | Row 仍 `width('100%')` | 勿在 Builder 钉 `maxWidth`；展开宽只改 UiTokens 三档 |
+| 无曲目展开无字 | `if` 两套 Builder 或误判 `miniBarCollapsed` | **单 Row** + `.clip(true)`；文案列勿 `Visibility.None` |
+| 有文字盖住页签 | Row 定宽 298 而 HDS 槽位仍 56 | Row `width('100%')` 随槽位伸缩 |
+| 盖住左侧圆球 | `Stack` + `inferMiniBarSlotWidthVp` | 勿自建槽位推断；交给 HDS + `displayPriority` |
+| 重复底栏 | `Stack` 叠加 `MiniPlayerBar` 与 miniBar | 根页仅 `Navigation { FloatingTabBar() }` |
+| **折叠换色 icon 上移** | 折叠态仍用同一套 `BottomTabBarStyle`，换色更新 `labelStyle` / `unselectedColor` | 见下节「页签 COLLAPSE 换色错位」 |
+
+当前推荐展开分档：**262 / 278 / 294** vp（`UiTokens.ets`）。
+
+## 页签 COLLAPSE 换色错位（已验证）
+
+**现象**：miniBar 展开、页签收成圆球（仅 icon）后，底栏自适应换色时 icon **上移**，下方像留了 **无字的 label 空行**。展开三 Tab 时正常。
+
+**根因（华为官方）**：COLLAPSE 时 label 常 **仍参与布局测量**、视觉隐藏；换色若更新 `labelStyle`，触发布局重算，icon 按 **icon+label 总高** 居中。
+
+**解法**（`HdsTabsShell.ets`）：
+
+1. `onBarStyleChange` → `@State tabBarCompact`，**两套样式整体替换**（勿原地改色）。
+2. **EXPAND**：`labelStyle` + `iconStyle`，`tabInactiveHex` 可 280ms 渐变。
+3. **COLLAPSE**：`labelStyle` 固定透明 + `font.size: 0.1`；换色 **只**写 `tabIconInactiveHex` → `iconStyle`，**不**动 `labelStyle`。
+4. **勿**用 `barHeight('auto')` / `72` 修此问题。
+
+**勿再试**：折叠传空 label、动画中 plain/styled 混切、逐帧 AppStorage 写 `labelStyle`。
+
+## 禁止做法（宽度 / 状态机）
+
+- 禁止改 `FLOATING_TAB_BAR_WIDTH_*`（228/248/268）来调展开宽。
+- 禁止 `miniBarBuilder` 上 `constraintSize({ maxWidth })` 或 `Row.width(262)` 与 `barWidth` 双轨。
+- 禁止 `@State miniBarCollapsed` 切换 `barWidth` 或两套展开/折叠 `barWidth`。
+- 禁止 `if (collapsed)` 两套 Builder；禁止 `Visibility.None` 藏无曲目文案列。
+- 禁止恢复 `MiniPlayerBar` 叠加层。
+
+## 错误结构示例
+
+```typescript
+// ❌ 与 miniBar 重复底栏
+Stack({ alignContent: Alignment.Bottom }) {
+  Navigation(...) { FloatingTabBar() }
+  MiniPlayerBar()
+}
+```
+
+```typescript
+// ✅ 唯一播放 UI 入口
+Navigation(...) {
+  FloatingTabBar() // HdsTabs + miniBarBuilder
+}
+```

@@ -1,0 +1,88 @@
+---
+description: HarmonyOS AudioRenderer 音频播放开发规范（ArkTS）
+alwaysApply: true
+---
+
+# AudioRenderer 音频播放规范（ArkTS）
+
+## 文档要点总览
+- `AudioRenderer` 用于播放 PCM 音频数据，适合需要自定义音频预处理的场景。
+- 相比 `AVPlayer`，`AudioRenderer` 控制粒度更细，但需要应用自行写入音频数据。
+- 典型流程：参数配置 -> 创建实例 -> 订阅回调 -> 启停控制 -> 资源释放。
+
+## 适用场景
+- 需要对 PCM 数据做前处理（如增益、混音、降噪、特效）后再播放。
+- 需要可控的渲染节奏与状态管理，而非纯“即开即播”播放器能力。
+- 对音频链路可观测性要求较高（状态变更、写入回调、缓冲管理）。
+
+## 核心开发流程
+1. 配置 `AudioStreamInfo`（采样率、通道、采样格式、编码格式）。
+2. 配置 `AudioRendererInfo`（`StreamUsage`、`rendererFlags`）。
+3. 通过 `audio.createAudioRenderer(options)` 创建实例。
+4. 订阅 `on('writeData')` 写入回调，持续喂给渲染器 PCM 数据。
+5. 调用 `start()` 进入 `running` 状态开始播放。
+6. 根据业务调用 `pause()` / `stop()`。
+7. 结束时调用 `release()` 释放软硬件资源。
+
+## 参数与选型建议
+- 采样率优先选 `SAMPLE_RATE_48000`，减少重采样带来的额外损耗。
+- `StreamUsage` 必须与业务一致（如音乐、语音通信等），避免路由与音量策略异常。
+- PCM 常见组合：`S16LE + RAW + 双声道`，便于与常见音频源对接。
+
+## 回调与状态管理
+- 建议同时订阅：
+  - `on('writeData')`：处理数据写入节奏。
+  - `on('stateChange')`：跟踪状态流转，避免非法状态调用。
+- API 12+ 建议在 `writeData` 回调中返回数据有效性结果（如 `VALID/INVALID`），提升渲染稳定性。
+- 在调用 `start/pause/stop/release` 前先校验当前状态，避免重复调用和异常分支。
+
+## 代码骨架（ArkTS）
+```typescript
+import { audio } from '@kit.AudioKit';
+
+const streamInfo: audio.AudioStreamInfo = {
+  samplingRate: audio.AudioSamplingRate.SAMPLE_RATE_48000,
+  channels: audio.AudioChannel.CHANNEL_2,
+  sampleFormat: audio.AudioSampleFormat.SAMPLE_FORMAT_S16LE,
+  encodingType: audio.AudioEncodingType.ENCODING_TYPE_RAW
+};
+
+const rendererInfo: audio.AudioRendererInfo = {
+  usage: audio.StreamUsage.STREAM_USAGE_MUSIC,
+  rendererFlags: 0
+};
+
+const options: audio.AudioRendererOptions = { streamInfo, rendererInfo };
+```
+
+## 工程实践建议
+- 将“读文件/解码/重采样/特效处理/写入渲染”拆分为独立模块，降低耦合。
+- 写入循环应支持背压控制，避免一次性写入过大导致抖动。
+- 统一封装状态机守卫（`canStart/canPause/canStop/canRelease`）。
+- 页面销毁、任务中断、异常分支都必须兜底 `release()`。
+- **禁止在 `writeData` 回调内做 HTTP/解码**；解码应在 TaskPool/独立模块写入环形缓冲。
+- 音乐类后台播放须同时接入 **AVSession** + `AUDIO_PLAYBACK` 长时任务（见 `media/avsession-media-center.mdc`）。
+
+## 常见问题与规避
+- 问题 1：`StreamUsage` 配置错误导致音量策略或音频焦点异常。
+- 问题 2：未监听 `stateChange`，在错误状态下调用控制接口。
+- 问题 3：`stop()` 后不 `release()`，造成资源泄漏和后续创建失败。
+- 问题 4：写入节奏不稳定，出现卡顿、爆音或音频断续。
+
+## 验收清单
+- 连续播放 10 分钟以上无明显卡顿、爆音、断续。
+- 暂停/恢复/停止切换后状态正确，且可重复进入播放。
+- 前后台切换、来电/通知等场景下无资源泄漏。
+- 退出页面后渲染器资源可回收，重复进入页面仍可正常创建。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/using-audiorenderer-for-playback
+
+## Sonar 播放管线（playback/pipeline/）
+- **AVPlayer-only**：`AudioRenderSink.openUrl(HTTP stream URL)` → prepare → seek(可选) → play；禁止并行 Fetch/磁盘缓存/fd。
+- **PipelineOrchestrator.replayAt**：首播、切网 migrate、error 恢复共用同一原语。
+- **切网 migrate**：`enterBuffering` → `replayAt(新 endpoint URL, frozenMs, wasPlaying)` → `exitBuffering`；等价于手动选曲 + 拖进度。
+- **用户 seek**：同 endpoint 且 player 已 prepared/playing/paused 时仅 `AVPlayer.seek`；error/idle 才 `replayAt`。
+- **下一首预加载**（`playback/preload/`）：剩余 ≤30s 时 `NextTrackPreloadCoordinator` 驱动；已缓存跳过；边听边下 `SongCache.enqueueDownload`；默认 `PipelineOrchestrator.prepareStandby` 双 AVPlayer 槽；低端机降级 `StreamWarmupPreloadStrategy`（512KB HTTP 预热）。切歌 standby 命中走 `promoteStandbyToActive` 热路径。
+- **双槽编排**：`PlayerSlot` active + standby；`cancel()` 仅影响 active，不取消 standby。
+- 禁止业务层直接 `http.createHttp()`（StreamWarmup 经 `HttpTransport.openStream`）。

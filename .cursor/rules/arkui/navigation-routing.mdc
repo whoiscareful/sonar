@@ -1,0 +1,67 @@
+---
+description: ArkUI Navigation/NavPathStack 路由与转场规范（非 HDS）
+globs: sonar/**/*.ets
+alwaysApply: false
+---
+
+# ArkUI 导航与路由规范
+
+## 文档要点总览
+- **推荐** `Navigation` + `NavDestination` + `NavPathStack` 替代已不推荐的路由 `@ohos.router`。
+- 系统级模糊标题栏、HDS 自定义区请用 `HdsNavigation`（见 `hds/navigation.mdc`），勿与原生 `Navigation` 混在同一栈语义里。
+- 转场、共享元素、蒙层动画有明确挂载点，错误挂在 `NavDestination` 容器上易冲突。
+
+## 基本结构
+
+```typescript
+@Entry
+@Component
+struct Index {
+  @Provide('navPathStack') pathStack: NavPathStack = new NavPathStack();
+
+  @Builder
+  pageMap(name: string) {
+    if (name === 'Detail') {
+      DetailPage()
+    }
+  }
+
+  build() {
+    Navigation(this.pathStack) {
+      HomeContent()
+    }
+    .navDestination(this.pageMap)
+    .title('首页')
+  }
+}
+```
+
+- 子页根容器：`NavDestination()`，内放业务 UI。
+- 跳转：`this.pathStack.pushPath({ name: 'Detail' })`；返回：`pop()` / `popToName()`。
+
+## 转场与动画
+- 系统转场**无**结束回调；需回调时用 `NavDestinationTransition` / `NavigationAnimatedTransition` 自定义。
+- **共享元素**：`geometryTransition('id')` 设在**内容节点**上；在 `animateTo` 闭包内执行 `pushPath`/`pop`。
+- `NavDestination` 上**避免** `zIndex`、`transition`、`geometryTransition`、`sharedTransition`、`animation` — 改设到内部 Column/Row/Image。
+
+## 与其他导航方式
+- `router` 跳 `Navigation` 页时，勿在 `aboutToAppear` 立即 `push`，易双动画冲突。
+- 同一次操作多次 pop/push 只算一次动画；需 push 动画时用 `LaunchMode.NEW_INSTANCE` 等策略。
+
+## HDS vs ArkUI 选型
+- 要 HarmonyOS Design 标题栏模糊、菜单气泡、PC 分栏 → `HdsNavigation`。
+- 元服务/轻量栈、完全自定义标题栏 → `Navigation`。
+- Sonar 根 Tab 用 `HdsTabs` + 页内 `Navigation` 嵌套时，明确哪一层持有 `NavPathStack`。
+
+## 常见误区
+- 在 `NavDestination` 根上设 `zIndex` 导致 push/pop 动画异常。
+- Dialog 型 `NavDestination` 蒙层卡顿 — 背景色动画应放在页面内容节点，在 `onWillAppear`/`onWillDisappear` 驱动。
+
+## 验收建议
+- push/pop 动画流畅，无两页同时过渡。
+- 返回键与栈顶一致；深链/恢复栈正确。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-navigation-navigation
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-router-to-navigation
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-navigation-animation-faq

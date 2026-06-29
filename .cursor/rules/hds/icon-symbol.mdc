@@ -1,0 +1,68 @@
+---
+description: hdsDrawable 图标处理与自定义 Symbol 注册规范
+globs: **/media/**,**/*Icon*.ets
+alwaysApply: false
+---
+
+# HDS 图标与 Symbol 规范
+
+## 文档要点总览
+- `hdsDrawable` 将单层/分层图标处理为符合 HarmonyOS Design System 的样式（合成、剪切、缩放、描边）。
+- **推荐分层图标**；单层场景用 `getHdsIcon` / `getHdsIcons`（API 12+）。
+- 应用内 **自定义 Symbol** 可注册动效资源，与 `SymbolGlyph` 配合，无需预置进系统。
+- 桌面/启动分层图标见 `app/icon.mdc`（勿与 `hdsDrawable` 业务图标混用）。
+
+## 适用范围
+- Phone、Tablet、PC/2in1；TV 单层处理自 API 19 起。
+- 模块：`import { hdsDrawable } from '@kit.UIDesignKit'`。
+
+## 规格限制
+- 批量与 Symbol 注册上限见 `hds/overview.mdc`「约束与限制」。
+
+## 单层图标（开发步骤）
+
+1. 在 `resources/base/media` 放置源图（如 `normal_icon.png`）。
+2. 调用接口获取处理后 `PixelMap` 或 `DrawableDescriptor` 供 `Image` 使用。
+
+```typescript
+import { hdsDrawable } from '@kit.UIDesignKit';
+import { image } from '@kit.ImageKit';
+
+// 异步单张（示意，以 SDK 签名为准）
+const icon = await hdsDrawable.getHdsIconAsync(
+  bundleName,
+  pixelMap,
+  size,
+  maskPixelMap,
+  hasBorder
+);
+
+// 批量
+hdsDrawable.getHdsIcons(iconsArray, maskPixelMap, options)
+  .then((results) => { /* 更新 UI */ })
+  .catch((err: BusinessError) => { /* 日志 */ });
+```
+
+- 分层图标：优先 `getHdsLayeredIconAsync` + `LayeredDrawableDescriptor`（官方推荐路径）。
+
+## 自定义 Symbol
+- 注册应用侧图标与动效参数；加载后通过 `SymbolGlyph` 展示，保持系统级视觉一致。
+- 仅一组注册位，规划好图标集合；与 `sys.symbol` 系统符号区分使用场景。
+
+## 开发落地清单
+- 列表/网格大量图标：用批量 API + 并发限制，避免一次超 500。
+- 处理结果缓存到内存或磁盘，同 size 同资源勿重复处理。
+- 应用图标适配：同时提供 layered 资源与 module 图标配置（`module.json5` / `$media`）。
+
+## 常见误区
+- 在 UI 线程循环调用数百次单张同步接口导致卡顿。
+- 超过 Symbol 注册上限后静默失败未做降级。
+- 用普通 `Image` 直接显示未处理图标，与系统设置/桌面风格不一致。
+
+## 验收建议
+- 浅色/深色、不同形状（圆/方）设备上图标边缘与描边正确。
+- 批量场景无并发错误；失败有日志。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-normal-process
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-custom-symbol-res-register

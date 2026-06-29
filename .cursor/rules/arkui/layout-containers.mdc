@@ -1,0 +1,68 @@
+---
+description: ArkUI 布局容器选型、响应式与性能规范
+globs: sonar/**/*.ets
+alwaysApply: false
+---
+
+# ArkUI 布局容器规范
+
+## 文档要点总览
+- 布局优先 **Column / Row**（单次测量）；重叠用 **Stack**；复杂相对关系用 **RelativeContainer**；需伸缩再用 **Flex**。
+- 响应式一多：`GridRow` / `GridCol` + 断点；项目宽度 token 见 `UiTokens.ets`（如 600 / 840 vp）。
+- 布局属性动画见 `arkui/animation.mdc`。
+
+## 容器选型
+
+| 容器 | 场景 | 性能 |
+| --- | --- | --- |
+| `Column` / `Row` | 线性排布 | 最佳 |
+| `Stack` | 层叠、浮层 | 良好 |
+| `RelativeContainer` | 扁平复杂对齐 | 良好，减少嵌套 |
+| `Flex` | flexGrow/Shrink | 较慢，非必要不用 |
+| `List` + `LazyForEach` | 长列表 | 见 `arkui/lists-performance.mdc` |
+
+## 常用属性
+- **主轴/交叉轴**：`justifyContent` + `alignItems`（Column/Row）。
+- **比例分配**：`layoutWeight(n)`；剩余空间用 `Blank()`。
+- **空间不足隐藏**：`displayPriority(n)`，数值小者先隐藏。
+- **Stack 层级**：`zIndex`；对齐 `alignContent`（九方向）。
+
+```typescript
+Row() {
+  Text('标题').layoutWeight(1).maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis })
+  Blank()
+  Text('详情')
+}.width('100%')
+```
+
+## 响应式断点（与 Sonar Token 对齐）
+- 小屏：宽 &lt; 600 vp → `FLOATING_TAB_BAR_*_SMALL`
+- 中屏：600–840 vp → `_MEDIUM`
+- 大屏：≥ 840 vp → `_LARGE`
+
+```typescript
+GridRow({
+  breakpoints: { value: ['600vp', '840vp'], reference: BreakpointsReference.WindowSize }
+}) {
+  GridCol({ span: { xs: 12, sm: 6, md: 4 } }) { /* ... */ }
+}
+```
+
+## 性能原则
+- 嵌套层级建议 ≤ 3；深 Row/Column 链可改为 `RelativeContainer`。
+- 不需要占位时用 `if/else`，**优于** `Visibility.None`（隐藏仍参与布局）。
+- `Scroll` 内 `List` 须设明确高度，否则一次加载全部子项。
+
+## 常见误区
+- 能用 Row/Column 却套 Flex，增加二次测量。
+- `layoutWeight(1)` 文案在宽父级无 `flexShrink(1)` / `maxLines`，撑破布局。
+- 在 HDS miniBar 内钉死展开宽度（应随 HDS 槽位，见 `hds/tabs-bar-floating.mdc`）。
+
+## 验收建议
+- 小/中/大三档断点布局无重叠、无截断异常。
+- 列表滚动帧率稳定，无整页 relayout 抖动。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-layout-development-linear
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-layout-development-stack-layout
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-layout-development-grid-layout

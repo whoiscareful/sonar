@@ -1,0 +1,106 @@
+---
+description: HDS 悬浮页签/miniBar 技术规范；展开宽度改 UiTokens 三档
+alwaysApply: true
+---
+
+# HDS 底部页签悬浮样式规范
+
+曾犯错误与反模式见 `hds/tabs-bar-floating-pitfalls.mdc`。
+
+## 文档要点总览
+- HarmonyOS 6.1.0(23)+：`HdsTabs` 支持 `barFloatingStyle` 悬浮页签与 `miniBar`。
+- 须 `.barOverlap(true)` + `.barPosition(BarPosition.End)` + `.vertical(false)`。
+- 页签栏样式仅支持 `BottomTabBarStyle` 或 `CustomBuilder`（主导航须 `BottomTabBarStyle`）。
+
+## `barFloatingStyle` 参数
+
+| 参数 | 作用 |
+| --- | --- |
+| `barWidth` | 分档宽度（`smallWidth` / `mediumWidth` / `largeWidth`） |
+| `barBottomMargin` | 页签栏与底部间距 |
+| `gradientMask` | 渐变蒙层（`maskColor`、`maskHeight`） |
+| `systemMaterialEffect` | 沉浸光感（见 `hds/immersive-light-perception.mdc`） |
+| `miniBar.miniBarBuilder` | 迷你栏自定义 UI |
+
+## 折叠态显示（官方行为，勿硬改）
+
+HDS 底部栏由 **两段槽位** 组成，折叠时系统收缩宽度，**文案默认不绘制**（非 Sonar bug）：
+
+| 区域 | 展开 | 折叠（COLLAPSE） | 配置入口 |
+| --- | --- | --- | --- |
+| **左侧页签胶囊** | 三 Tab：icon + 文案 | 当前 Tab **圆球，通常仅 icon** | `BottomTabBarStyle(icon, label)` |
+| **右侧 miniBar** | 封面 + 曲名 + 操作 | **圆盘/音符，文案被槽位裁切** | `miniBarBuilder` → `MiniBarRow` |
+
+- 折叠/展开宽度由 **HDS 槽位** 控制；`onBarStyleChange` 感知 `tabBarStyle`。**自适应换色**须在 COLLAPSE/EXPAND 用两套 `BottomTabBarStyle`（见下文「页签自适应换色」），勿在折叠态原地更新 `labelStyle`。
+- 官方建议折叠态保持 icon-only；若强需求折叠态仍显示文字，需自研底栏替代 `miniBar`，或查阅 UIDesign Kit 是否有更新接口（当前无「强制折叠显示 label」开关）。
+- 博客/指南中 **无 miniBar** 的示例：页签栏始终展开，故始终见 icon+文案；**与 Sonar（页签 + miniBar 并存）不可直接对比折叠球**。
+
+## miniBar 官方模型
+
+- 折叠/展开由 **HDS 控制 mini 槽位宽度**，应用侧勿自建折叠状态机。
+- `miniBarBuilder` **仅一个 `Row`**：`width('100%')` + `.clip(true)`。
+- 封面 + 文案（`layoutWeight(1)` + `flexShrink(1)`）+ 操作区；封面外径 `FLOATING_TAB_BAR_HEIGHT`（56vp）。
+- 参考：[设置页签栏的悬浮样式](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-hds-tabs-bar-floating)
+
+## Sonar 播放 UI 结构
+
+- 播放态 UI **唯一入口**：`FloatingTabBar.miniBarBuilder()`。
+- 根页勿 `Stack` 叠加 `MiniPlayerBar` 或第二套播放条（详见 pitfalls 归档）。
+- 无曲目占位图标：`dock_music_note`，勿用 `lib_icon_12` / Logo。
+
+## 展开底部胶囊宽度（唯一修改点）
+
+用户要求调整展开宽度时，**只改** `sonar/src/main/ets/sonar/ui/tokens/UiTokens.ets` 三档 token（同增同减 ±8～12vp）：
+
+| Token | 断点 |
+| --- | --- |
+| `FLOATING_TAB_BAR_EXPANDED_WIDTH_SMALL` | 屏宽 &lt; 600vp |
+| `FLOATING_TAB_BAR_EXPANDED_WIDTH_MEDIUM` | 600vp ≤ 宽 &lt; 840vp |
+| `FLOATING_TAB_BAR_EXPANDED_WIDTH_LARGE` | 宽 ≥ 840vp |
+
+**当前值：262 / 278 / 294 vp。**
+
+生效链路：`resolveFloatingBarWidth()` → `barFloatingStyle.barWidth`；`miniBarBuilder` 内 Row 保持 `width('100%')`，不在 Builder 钉展开宽。
+
+折叠态圆球约 56vp，由系统 mini 槽控制，不在此调节。
+
+## 页签自适应换色（官方 workaround）
+
+HDS 已知行为：COLLAPSE 时 label **可能仍参与测量**但视觉隐藏；若换色更新 `labelStyle`，icon 会按「icon+label」总高重新居中 → **icon 上移 + 下方空白**。
+
+**Sonar 实现（[`HdsTabsShell.ets`](sonar/src/main/ets/sonar/components/navigation/HdsTabsShell.ets)）**：
+
+| 状态 | BottomTabBarStyle | 换色 |
+| --- | --- | --- |
+| EXPAND | 完整 `labelStyle` + `iconStyle`，`tabInactiveHex` / `tabSelectedHex` 可 280ms 渐变 | icon + 文案 |
+| COLLAPSE | 独立样式：`labelStyle` 透明 + `font.size: 0.1` 压缩测量；**仅** `iconStyle` ← `tabIconInactiveHex` / `tabIconSelectedHex` | 只改 icon 色，**不**更新 labelStyle |
+
+- 选中主色：`sonar_primary_on_light_bg`（浅底 `#7B6BA8`）↔ `sonar_primary_on_dark_bg`（深底 `#B8AAD4`），由 `BarToneStore.resolveForegroundColors().tabSelected` 驱动，与未选中 icon 同色随 `barToneUseLightForeground` 翻转。
+
+- `miniBar.onBarStyleChange` → `@State tabBarCompact`，**整体替换**两套样式对象（勿原地改同一对象的 labelStyle）。
+- 勿改 `barHeight`；折叠态 icon-only 为官方预期。
+
+## 页签栏高度
+
+- 系统默认 **56vp**；勿 `barHeight('auto')` / `72`。
+
+## ArkTS 类型
+
+- 使用 `@kit.UIDesignKit` 导出类型：`HdsTabsFloatingStyle`、`HdsBarWidthRangeOptions`、`HdsTabsMiniBar` 等。
+- 禁止自定义 interface 充当 `barFloatingStyle` 返回值。
+- 可封装 `buildBarFloatingStyle(): HdsTabsFloatingStyle`。
+
+## 页签图标（紧凑态）
+
+- `TabBarIconStyle` 无 `size` 字段；须 `new BottomTabBarStyle(icon, label).labelStyle(...).iconStyle(...)`。
+- 禁止 CustomBuilder 替代 `BottomTabBarStyle` 做主导航（图标不可见仍可点击）。
+
+## 验收
+
+- **展开**：页签胶囊三 Tab 均为 icon + 文案；miniBar 见曲名/占位文案 + 操作区。
+- **折叠（官方）**：左侧页签球、右侧 miniBar 均可仅 icon；**换色后 icon 不上移、无 phantom label 空白**（依赖 COLLAPSE 双轨样式）。
+- 三档断点真机各扫一眼；深浅色蒙层与材质可读。
+
+## 参考文档
+
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-hds-tabs-bar-floating

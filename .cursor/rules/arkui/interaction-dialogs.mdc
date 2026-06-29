@@ -1,0 +1,67 @@
+---
+description: ArkUI 交互事件、手势竞争与弹层/Sheet 选型规范
+globs: sonar/**/*.ets
+alwaysApply: false
+---
+
+# ArkUI 交互与弹层规范
+
+## 文档要点总览
+- 交互分 **指向性事件**（触摸/鼠标，按命中组件派发）与 **非指向性事件**（键盘等，按焦点派发）。
+- 手势系统在组件上竞争，满足条件者独占后续事件；冲突用 `hitTestBehavior`、`priorityGesture`。
+- 弹层优先 **UIContext 全局 API**：`openCustomDialog`、`openBindSheet`、`bindContentCover`；勿用已废弃 `CustomDialogController` 作为主路径。
+
+## 事件与手势
+- 完整序列：Touch Down → Move* → Up/Cancel；处理拖拽时注意与父级滚动手势冲突。
+- `HitTestMode`：`Default` / `Block` / `Transparent` / `None` — 控制事件穿透。
+- `priorityGesture`：子组件优先于父级滚动手势时使用。
+
+```typescript
+Column()
+  .gesture(
+    PanGesture()
+      .onActionUpdate((e: GestureEvent) => { /* ... */ })
+  )
+  .priorityGesture(
+    TapGesture().onAction(() => { /* 优先于父 List 滑动 */ })
+  )
+```
+
+## 弹层选型
+
+| API | 场景 |
+| --- | --- |
+| `openCustomDialog` | 居中/自定义对齐模态或非模态对话框 |
+| `openBindSheet` | 底部半模态 Sheet，多档位高度 |
+| `bindContentCover` | 全屏模态页、播放器全屏等 |
+| `openPopup` / `openMenu` | 轻量气泡、上下文菜单 |
+| `bindPopup` | 组件锚点弹出（局部） |
+
+```typescript
+const uiContext = this.getUIContext();
+const node = new ComponentContent(uiContext, wrapBuilder(sheetBuilder), params);
+uiContext.openBindSheet(node, {
+  height: SheetSize.MEDIUM,
+  preferType: SheetType.BOTTOM,
+  detents: [SheetSize.MEDIUM, SheetSize.LARGE],
+}, targetId);
+```
+
+## 拖拽与焦点
+- 统一拖拽：跨应用/跨组件拖放使用系统拖拽框架，勿自造全局 overlay 拖影。
+- Dialog 焦点策略：模态层自动获焦；多层 Dialog 注意 `DialogBoxLayer` 管理。
+- 键盘：`defaultFocus(true)`、`FocusController.requestFocus` / `clearFocus` 关键盘。
+
+## 常见误区
+- 滚动容器内嵌套可滑动子项未处理手势冲突，导致滑不动或误触。
+- 多处同时 `openCustomDialog` 未管理 `ComponentContent` 生命周期，泄漏或无法关闭。
+- 全屏层用 `Stack` 叠加而非 `bindContentCover`，返回键与焦点行为异常。
+
+## 验收建议
+- 连点、快滑无手势「抢不到」或误触发。
+- Sheet/Dialog 关闭后焦点回到合理控件；物理返回键行为符合预期。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-interaction-capability-overview
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-common-components-dialog
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-bind-sheet

@@ -1,0 +1,37 @@
+# Dependencies
+/node_modules
+/oh_modules
+
+# Local IDE/editor files
+/.idea
+/.vscode
+*.code-workspace
+
+# Local machine config
+/local.properties
+*.keystore
+*.jks
+*.p12
+*.p7b
+*.cer
+
+# Build outputs and caches
+/.hvigor
+/.appanalyzer
+/.cxx
+**/build
+**/.test
+*.log
+*.tmp
+
+# OS/utility files
+.DS_Store
+Thumbs.db
+
+# Tooling files
+/.clangd
+/.clang-format
+/.clang-tidy
+
+# AI
+.qoder

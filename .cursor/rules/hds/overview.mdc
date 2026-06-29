@@ -1,0 +1,64 @@
+---
+description: UI Design Kit（HDS）总览、版本约束与子规则索引
+alwaysApply: true
+---
+
+# UI Design Kit（HDS）总览
+
+## 文档要点总览
+- UI Design Kit 是符合 HarmonyOS Design System 的 UI 界面开发套件，基于 ArkUI 扩展组件、光影与图标能力。
+- 统一模块：`import { ... } from '@kit.UIDesignKit'`（含 `HdsNavigation`、`HdsTabs`、`hdsDrawable`、`hdsEffect`、`hdsMaterial` 等）。
+- 目标：全场景设备上一致的视觉品质；优先系统自适应，再按设备能力降级。
+
+## 与 ArkUI 基础能力对照
+
+| 能力维度 | ArkUI 基础 | UI Design Kit 增强 |
+| --- | --- | --- |
+| 导航 | `Navigation` / `NavDestination` | `HdsNavigation`：动态模糊标题栏、自定义区域、Sheet 样式 |
+| 页签 | `Tabs` | `HdsTabs`：分割线显隐、模糊、图标出血、悬浮页签 |
+| 列表 | 普通 `List` | 横滑删除、统一卡片样式 |
+| 光影 | 平面/基础材质 | 点光源、流光、按压阴影、沉浸光感材质 |
+| 图标 | 系统预置 | `hdsDrawable` 单层/分层处理；应用内注册 Symbol |
+
+## 版本门槛（开发前确认 SDK）
+
+| 能力 | 最低版本 |
+| --- | --- |
+| 单层/分层图标 `hdsDrawable` | API 12 (5.0.0) |
+| 标题栏通用模糊 | API 18 (5.1.0) |
+| 过渡/渐变模糊、标题栏自定义区、点光源/按压阴影/流光 | API 20 (6.0.0) |
+| 悬浮页签 `barFloatingStyle`、沉浸光感 `systemMaterialEffect` | API 23 (6.1.0) |
+
+## 约束与限制
+- **地域**：仅支持中国境内（不含港澳台）。
+- **设备**：Phone、Tablet、PC/2in1、TV（部分能力分设备，见各专题 rule）。
+- **图标批量**：最大并发 10，单次最多 500 个。
+- **Symbol 注册**：仅 1 组资源，最多 10 个自定义图标与动效参数。
+- **HdsNavigation**：横屏 Stack 模式不支持合并工具栏到菜单栏；标题栏默认层叠于内容区上层。
+- **模拟器**：不支持 HDS 沉浸视效（点光源、按压阴影、流光、沉浸光感材质等），须真机验证。
+
+## 子规则索引（HDS）
+
+| 主题 | 规则文件 |
+| --- | --- |
+| 导航 `HdsNavigation` | `hds/navigation.mdc` |
+| 页签增强（模糊/分割线/出血） | `hds/tabs-enhanced.mdc` |
+| 悬浮页签 + miniBar | `hds/tabs-bar-floating.mdc` |
+| 悬浮底栏曾犯错误（归档） | `hds/tabs-bar-floating-pitfalls.mdc` |
+| 沉浸光感材质 | `hds/immersive-light-perception.mdc` |
+| 应用内图标 / Symbol | `hds/icon-symbol.mdc` |
+| 点光源 / 按压阴影 / 流光 | `hds/visual-effects.mdc` |
+| 列表卡片 | `hds/list-card.mdc` |
+| 侧边栏 / 操作栏 / 多窗 | `hds/sidebar-interaction.mdc` |
+| 桌面 / 启动图标 | `app/icon.mdc` |
+
+ArkUI 基础专题见 `arkui/overview.mdc`。
+
+## 常见误区
+- 在模拟器上验收 HDS 光效或材质，误判为「效果未生效」。
+- 全页面堆叠 HDS 光效，忽略性能与温控。
+- 混用 ArkUI `Navigation` 与 `HdsNavigation` 语义，导致标题栏/路由行为不一致。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-introduction
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-hds-component-material

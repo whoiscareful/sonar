@@ -1,0 +1,2 @@
+# Debug 构建不执行混淆；单独规则文件避免与 release 混淆选项冲突触发 hvigor 警告。
+-disable-obfuscation

@@ -1,0 +1,113 @@
+---
+description: HarmonyOS ArkTS 动画开发规范（ArkUI）
+alwaysApply: true
+---
+
+# ArkTS 动画开发规范（ArkUI）
+
+## 文档要点总览
+- ArkUI 动画应优先按“场景 -> 接口”选型，而不是先写动画参数。
+- 常用动画能力分为四类：属性动画、显式动画、关键帧动画、转场动画。
+- 动画目标是提升反馈与层次感，不能以牺牲流畅度和可读性为代价。
+
+## 动画能力选型
+- `.animation(...)`（属性动画）
+  - 适合单组件、单次状态变化的隐式过渡。
+  - 使用成本低，适合按钮态、小范围样式过渡。
+- `UIContext.animateTo(...)`（显式动画）
+  - 对闭包内状态变更统一加动画。
+  - 适合多个属性或多个组件同步变化。
+- `UIContext.keyframeAnimateTo(...)`（关键帧动画）
+  - 通过关键帧数组定义多阶段连续动画。
+  - 适合“放大 -> 位移 -> 回弹”等复合时序。
+- `transition(...)` / `geometryTransition(...)`（转场）
+  - 适合组件出现/消失与共享元素转场。
+  - 适合列表增删、浮层开合、详情页元素承接。
+
+## 组件动画补充（`transition`）
+- 组件动画核心用于“插入显示 / 删除隐藏”场景，不替代普通属性动画。
+- 推荐触发方式：在 `animateTo(...)` 闭包内切换 `if` 条件或列表数据，让组件进入/离开组件树。
+- `TransitionEffect` 可组合使用（透明度、位移、缩放、旋转），适合列表项增删和面板开合。
+- 若希望组件直接显隐不做过渡，可显式设置 `TransitionEffect.IDENTITY` 禁用默认转场。
+
+## 组件动画参数优先级
+- 同一转场链路中，参数优先级遵循“就近覆盖”原则：
+  1. 当前 `TransitionEffect` 上配置的 `animation(...)`
+  2. 前序 `TransitionEffect` 上配置的 `animation(...)`
+  3. 触发时 `animateTo(...)` 传入的动画参数
+- 需要统一全局节奏时，用 `animateTo` 兜底；需要局部差异时，在具体 `TransitionEffect` 上单独配置。
+
+## 组件动画代码骨架（插入/删除）
+```typescript
+if (this.showCard) {
+  Column() {
+    Text('Now Playing')
+  }
+  .transition(
+    TransitionEffect.OPACITY
+      .combine(TransitionEffect.translate({ y: 20 }))
+      .combine(TransitionEffect.scale({ x: 0.96, y: 0.96 }))
+  )
+}
+
+Button(this.showCard ? '隐藏' : '显示')
+  .onClick(() => {
+    this.getUIContext()?.animateTo(
+      { duration: 260, curve: Curve.EaseOut },
+      () => { this.showCard = !this.showCard; }
+    );
+  })
+```
+
+## 标准开发流程
+1. 先定义交互目标：反馈类 / 引导类 / 转场类 / 强调类。
+2. 选择最小可行动画接口，避免“重武器打小问题”。
+3. 统一时长与曲线，形成页面内一致动效节奏。
+4. 在真机验证帧率与触控响应，再做视觉微调。
+
+## 动画参数建议
+- 时长：微交互优先短时长（约 120-300ms），跨区块过渡适度延长。
+- 曲线：默认使用 `EaseOut` 或 `EaseInOut`，避免生硬线性曲线滥用。
+- 迭代与回放：仅在明确场景下使用 `iterations` 与 `playMode`，避免注意力干扰。
+- 完成回调：在 `onFinish` 里做收尾逻辑，不在动画中段改业务状态。
+
+## 代码骨架（显式 + 关键帧）
+```typescript
+this.getUIContext()?.animateTo(
+  { duration: 260, curve: Curve.EaseOut },
+  () => {
+    this.isExpanded = !this.isExpanded;
+    this.opacity = this.isExpanded ? 1 : 0.7;
+  }
+);
+
+this.getUIContext()?.keyframeAnimateTo(
+  { iterations: 1 },
+  [
+    { duration: 120, event: () => { this.scale = 1.06; } },
+    { duration: 140, event: () => { this.scale = 1.0; } }
+  ]
+);
+```
+
+## 性能与稳定性规范
+- 优先动画属性：`translate` / `scale` / `rotate` / `opacity`。
+- 慎用高成本属性：`width` / `height` / `margin`（会引发布局重算）。
+- 避免高频手势过程中反复触发新动画，推荐“跟手更新 + 松手收尾动画”。
+- 避免无意义并发动画叠加，必要时串行执行并设定中断策略。
+
+## 常见误区
+- 误区 1：所有状态变化都包 `animateTo`，导致页面“处处在动”。
+- 误区 2：在动画未结束时重复触发同一交互，造成状态抖动。
+- 误区 3：只看模拟器效果，不做低端机与复杂列表场景验证。
+- 误区 4：只关注视觉，不评估可达性与操作确认反馈。
+
+## 验收清单
+- 连点、快滑、切页等高频操作下动画无明显掉帧与卡顿。
+- 动画不中断核心操作反馈（点击、返回、滚动优先级更高）。
+- 同一页面动效节奏一致，无“忽快忽慢”割裂感。
+- 低性能设备与深色模式下依然可读、可操作。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-use-animation
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-component-animation

@@ -1,0 +1,125 @@
+---
+description: Sonar 应用图标（分层桌面图标 + 启动页）配置与替换规范
+globs: AppScope/**,**/module.json5,AppScope/resources/**/media/**,**/media/layered_image.json,**/media/startIcon.png
+alwaysApply: false
+---
+
+# Sonar 应用图标配置规范
+
+## 文档要点总览
+- 桌面/设置图标：`AppScope/app.json5` → `$media:layered_image`（前景 + 背景两层 PNG）。
+- 启动闪屏：`module.json5` → `startWindowIcon: "$media:startIcon"`。
+- module 级 `abilities[].icon` **可选**；若配置且含 `entity.system.home`，**优先级高于** app.json5。
+- 业务 SVG（`lib_icon_*`、`dock_music_note` 等）**不得**用作应用/启动图标。
+- 应用内 UI 图标与 Symbol 见 `hds/icon-symbol.mdc`（与桌面/启动图标职责不同）。
+
+## 图标位点（三处职责）
+
+| 位点 | 配置文件 | 资源 | 用途 |
+| --- | --- | --- | --- |
+| 应用级 | `AppScope/app.json5` → `icon` | `$media:layered_image` | 桌面、设置、应用列表 |
+| 启动页 | `sonar/src/main/module.json5` → `startWindowIcon` | `$media:startIcon` | 冷启动闪屏中央图标 |
+| 模块 Ability（可选） | `module.json5` → abilities[].`icon` | 任意 `$media:*` | 含 home skill 时覆盖 app 级 |
+
+## 当前 Sonar 策略（强制）
+
+- **桌面图标**：不在 module 中配置 `icon`，统一走 `app.json5` 的 layered。
+- **启动页**：module 引用 `startIcon.png`。
+- **库页 Tab** 等 UI 继续使用 `lib_icon_12.svg`，与应用图标分离。
+
+## 目录结构
+
+```
+AppScope/resources/base/media/
+  foreground.png      # 前景层 1024×1024 PNG
+  background.png      # 背景层 1024×1024 PNG
+  layered_image.json
+
+sonar/src/main/resources/base/media/
+  startIcon.png       # 启动页图标
+```
+
+## 配置示例
+
+### `AppScope/app.json5`
+
+```json5
+{
+  "app": {
+    "icon": "$media:layered_image",
+    "label": "$string:app_name"
+  }
+}
+```
+
+### `AppScope/resources/base/media/layered_image.json`
+
+```json
+{
+  "layered-image": {
+    "background": "$media:background",
+    "foreground": "$media:foreground"
+  }
+}
+```
+
+### `sonar/src/main/module.json5`（SonarAbility 片段）
+
+```json5
+{
+  "abilities": [{
+    "name": "SonarAbility",
+    "startWindowIcon": "$media:startIcon",
+    "startWindowBackground": "$color:start_window_background",
+    "skills": [{
+      "entities": ["entity.system.home"],
+      "actions": ["ohos.want.action.home"]
+    }]
+  }]
+}
+```
+
+**禁止**在含 `entity.system.home` 的 Ability 上配置 `icon: $media:lib_icon_12` 等业务资源。
+
+## 分层图标规范（上架与 UX）
+
+- 前景、背景各 **1024×1024 px**，PNG；源图不裁圆角、不加内边距。
+- 重要图形落在中心安全区；圆角由系统自适应。
+- 上架建议 DevEco Studio **5.0.5.315+** Image Asset 再处理。
+
+参考：[配置分层图标](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/layered-image)
+
+## DevEco Studio 工作流
+
+### 桌面分层图标（AppScope）
+
+1. 右键 **AppScope** → **New** → **Image Asset** → **Icon**。
+2. 配置 Foreground / Background Layer。
+3. 更新 `foreground.png`、`background.png`；保持 `layered_image.json` 与 `app.json5` 引用不变。
+
+### 启动页图标（Entry 模块）
+
+1. 右键 **sonar** 模块 → **New** → **Image Asset** → **Icon and start window icon**。
+2. 生成 `startIcon.png`；保持 `startWindowIcon: "$media:startIcon"`。
+
+## 常见误区
+
+| 现象 | 错误做法 | 正确做法 |
+| --- | --- | --- |
+| 桌面是地球/库页图标 | module `icon` → `lib_icon_*` | 删除 module `icon` 或改为 `$media:layered_image` |
+| 桌面图标空白/异常 | 只有 `layered_image.json`，无 PNG | 提交 `foreground.png` / `background.png` 到 AppScope |
+| 启动页图标错误 | `startWindowIcon` 指向业务 SVG | 使用 `$media:startIcon` |
+
+## 验收清单
+
+- 卸载重装后桌面为 layered 图标（当前默认：蓝底 + 四格前景）。
+- 冷启动闪屏为 `startIcon`，非库页 SVG。
+- 库页 Tab 仍用 `lib_icon_12`，与应用图标互不影响。
+- 替换品牌图后在真机检查裁切与深浅色。
+
+## 替换为 Sonar 品牌图标
+
+1. 准备 1024×1024 前景、背景 PNG。
+2. 覆盖 `AppScope/resources/base/media/` 对应文件。
+3. 可选：Image Asset 重新生成 `startIcon.png`。
+4. Clean build → 真机验证。

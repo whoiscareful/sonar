@@ -1,0 +1,49 @@
+---
+description: HDS 列表横滑删除与卡片样式规范
+globs: **/*List*.ets,**/pages/**
+alwaysApply: false
+---
+
+# HDS 列表与卡片规范
+
+## 文档要点总览
+- UI Design Kit 提供 **高端卡片列表** 样式：统一视觉、内置 **横滑删除** 动效、多设备系统风格适配。
+- 在 ArkUI `List` / `ListItem` 基础上使用 HDS 扩展能力，而非纯自绘 `swipeAction` 拼动效。
+- 长列表性能见 `arkui/lists-performance.mdc`；列表 **设计** 原则可参考 HarmonyOS 设计指南（操作项不宜过多）。
+
+## 适用范围
+- 需要与系统设置/联系人等一致的卡片列表体验的场景。
+- 模块与 API 以 [`ui-design-list-item-card`](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-list-item-card) 为准。
+
+## 能力清单
+- **横滑删除动效**：内置删除交互与动画曲线，减少自定义 `swipeAction` 与 HDS 样式冲突。
+- **列表卡片样式**：圆角、分隔、阴影/材质与 Design System 一致。
+- **多设备适配**：Phone / Tablet / PC 上间距与密度随系统风格调整。
+
+## 设计原则（与官方设计指南一致）
+- 列表以 **文本信息** 为主，图标/缩略图适量辅助识别。
+- 横滑操作 **不宜过多**：一般不超过 3–4 项，总宽不超过行宽一半为宜。
+- 操作图标表意明确，避免用户猜测；核心操作为主（删除、收藏等）。
+
+## 开发落地清单
+- 优先采用 HDS 列表/card API 与示例结构，再考虑 `ListItem` + `swipeAction` 完全自研。
+- 数据源仍用 `LazyForEach` + 稳定 key；删除后通过 `IDataSource` 通知刷新。
+- 删除确认： destructive 操作可二次确认，避免误触（业务层）。
+- 与导航栏滚动联动时，列表 `edgeEffect` 与标题栏模糊配置协调（见 `hds/navigation.mdc`）。
+
+## 代码方向（示意）
+- 具体属性名以 SDK `UIDesignKit` 声明为准；集成时对照官方 List Style 章节与 Codelab。
+- 列表项内复杂 UI 拆 `@Reusable` 子组件，保证滑动帧率。
+
+## 常见误区
+- HDS 卡片样式 + 原生 `swipeAction` 双套滑动，动效打架。
+- 横滑露出过多按钮，触发阈值过大导致难以滑动。
+- 删除仅改本地数组未通知 `LazyForEach` 数据源，UI 残留。
+
+## 验收建议
+- 横滑删除跟手、回弹自然；删除后项消失无空白闪烁。
+- 小屏与大屏列表密度合理；深色模式对比度可读。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-list-item-card
+- https://developer.huawei.com/consumer/cn/doc/design-guides/list-0000001929853910

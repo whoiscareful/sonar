@@ -1,0 +1,87 @@
+---
+description: HdsNavigation/HdsNavDestination 导航、标题栏模糊与自定义区域规范
+globs: **/*Navigation*.ets,**/pages/**
+alwaysApply: false
+---
+
+# HDS 导航（HdsNavigation）规范
+
+## 文档要点总览
+- `HdsNavigation` 为 HDS 路由根容器，子页用 `HdsNavDestination`；栈操作仍用 `NavPathStack`（与 ArkUI 路由模型一致，见 `arkui/navigation-routing.mdc`）。
+- 标题栏支持 **动态模糊**（通用 / 过渡 / 渐变）、自定义 `stackBuilder` / `bottomBuilder`、消息红点、Sheet 样式等。
+- 默认标题栏 **层叠**于内容区上层；横屏 Stack 模式不支持合并工具栏到菜单栏。
+
+## 适用范围
+- API 18+：通用模糊；API 20+：过渡模糊、渐变模糊、自定义区域；API 23+：沉浸光感（见 `hds/immersive-light-perception.mdc`）。
+- 模块：`import { HdsNavigation, HdsNavDestination, ... } from '@kit.UIDesignKit'`。
+
+## 动态模糊选型（scrollEffectType）
+
+| 类型 | 场景 |
+| --- | --- |
+| 通用模糊 | 列表型非沉浸；内容进/出标题栏时背板与分割线渐变 |
+| 过渡模糊 | 沉浸式图文；随滚动距离标题栏样式线性变化 |
+| 渐变模糊 | 全沉浸；模糊在空间上逐渐增强/减弱，边界柔和 |
+
+- 在 `titleBar.scrollEffectType`（或等价配置）设置；列表穿透标题栏下方时需内容区与标题栏滚动联动。
+
+## 自定义区域（API 20+）
+
+```typescript
+import { HdsNavigation, BottomBuilderShowType } from '@kit.UIDesignKit';
+
+@Entry
+@Component
+struct Index {
+  @Builder StackBuilder() {
+    Column() { /* 分段控件等 */ }.height(56)
+  }
+
+  @Builder BottomBuilder() {
+    Search().width('100%')
+  }
+
+  build() {
+    HdsNavigation() {
+      // 首页内容或 navDestination
+    }.titleBar({
+      content: {
+        title: { mainTitle: '媒体库', subTitle: '' },
+        stackBuilder: (): void => this.StackBuilder(),
+        bottomBuilder: {
+          builder: (): void => this.BottomBuilder(),
+          height: 56,
+          showType: BottomBuilderShowType.DIRECTLY_SHOW
+        }
+      }
+    })
+  }
+}
+```
+
+- `stackBuilder`：标题栏上方扩展（分段按钮等）。
+- `bottomBuilder`：标题栏下方（搜索框、页签条）；注意总高度与 safe area。
+
+## 开发落地清单
+- 路由跳转与 ArkUI 一致：`pathStack.pushPath` / `pop`；二级页根节点为 `HdsNavDestination`。
+- PC/2in1：可分栏、悬浮分栏等模式，按设备能力配置（官方一多指南）。
+- 沉浸光感：标题栏 `titleBar.style.systemMaterialEffect` 与底栏同一策略（见 `hds/immersive-light-perception.mdc`）。
+- API 22+ 起部分类型可免手动导入 `HdsNavigationAttribute`，以当前 SDK 文档为准。
+
+## 与 ArkUI Navigation 选型
+- 需要 HDS 模糊、菜单气泡、Design System 标题栏 → `HdsNavigation`。
+- 轻量、完全自绘标题 → `Navigation`（`arkui/navigation-routing.mdc`）。
+
+## 常见误区
+- 在普通 `Navigation` 上期望 HDS 模糊 API 生效。
+- 自定义区域高度未计入，内容与标题栏重叠。
+- 横屏 Stack 模式强行合并工具栏到菜单栏（不支持）。
+
+## 验收建议
+- 列表滚动时标题栏模糊/分割线过渡跟手、无闪烁。
+- push/pop 与子页 `HdsNavDestination` 显示正常；PC 分栏布局可用。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-navigation-dynamic-blur
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-navigation-customized-area
+- https://gitee.com/harmonyos_codelabs/uidesign_kit_codelab_hdsnavigation_arkts

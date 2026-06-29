@@ -1,0 +1,48 @@
+---
+description: ArkUI 声明式开发总览与 HDS/ArkUI 组件选型索引
+globs: sonar/**/*.ets
+alwaysApply: false
+---
+
+# ArkUI 声明式开发总览
+
+## 文档要点总览
+- ArkUI 是 HarmonyOS 主力 **声明式 UI 框架**：ArkTS + `build()`，状态驱动最小化刷新。
+- 一套 API 覆盖 Phone / Tablet / PC / TV；配合 DevEco 预览与 ArkUI Inspector。
+- 架构：**声明式 UI 前端** + **渲染引擎**；开发范式以 **ArkTS 声明式** 为准。
+- UI 分两层：**ArkUI 基础能力** 与 **UI Design Kit / HDS**（见 `hds/overview.mdc`）。
+
+## 规则索引
+
+| 主题 | 规则文件 |
+| --- | --- |
+| 组件 / Builder / 生命周期 | `arkui/components-lifecycle.mdc` |
+| 状态管理 V1/V2 | `arkui/state-management.mdc` |
+| 布局容器 | `arkui/layout-containers.mdc` |
+| 路由 Navigation | `arkui/navigation-routing.mdc` |
+| 列表与性能 | `arkui/lists-performance.mdc` |
+| 交互与弹层 | `arkui/interaction-dialogs.mdc` |
+| 主题 / 窗口 / 一多 | `arkui/theme-window-adaptation.mdc` |
+| 无障碍 | `arkui/accessibility.mdc` |
+| 动画 | `arkui/animation.mdc` |
+| HDS 套件 | `hds/overview.mdc` |
+
+## HDS 与 ArkUI 选型
+
+| 场景 | 推荐 | 专规 |
+| --- | --- | --- |
+| 系统模糊标题栏、HDS 路由 | `HdsNavigation` + `HdsNavDestination` | `hds/navigation.mdc` |
+| 轻量 `NavPathStack` 导航 | `Navigation` + `NavDestination` | `arkui/navigation-routing.mdc` |
+| 底部悬浮页签 + miniBar | `HdsTabs.barFloatingStyle` | `hds/tabs-bar-floating.mdc` |
+| 简单 Tab、无 HDS | `Tabs` + `TabContent` | — |
+| 长列表 | `List` + `LazyForEach` | `arkui/lists-performance.mdc` |
+| 动画 | `animateTo` / `transition` | `arkui/animation.mdc` |
+
+## `build()` 基本约束
+- `build()` 内避免副作用与异步；状态变更通过装饰器触发重建。
+- 单根节点；复杂 UI 拆 `@Builder` 或子组件。
+- 资源用 `$r('app.type.name')`，勿硬编码颜色/尺寸（见 `arkui/theme-window-adaptation.mdc`）。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkui-overview
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-ui-development-overview

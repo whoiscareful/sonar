@@ -1,0 +1,35 @@
+---
+description: HarmonyOS AVSession 系统媒体中心接入规范（Sonar）
+alwaysApply: true
+---
+
+# AVSession 系统媒体中心规范
+
+## 单源状态
+- 播放 UI、通知、系统媒体中心只消费 `PlaybackSnapshot`（`AppStorage` 键 `playback`）。
+- UI 层只调用 **`PlaybackService`**；由 **`PlaybackSession`** 发布快照；`MediaCenter.apply(snapshot, cover)` 为唯一 AVSession 写入入口。
+
+## 生命周期顺序
+1. `createAVSession(context, tag, 'audio')`
+2. `on('play'|'pause'|'playNext'|'playPrevious'|'seek')` 注册命令
+3. `setAVMetadata`（含标题/歌手/时长/封面）
+4. `setAVPlaybackState`
+5. **`activate()`**（必须在元数据与命令就绪之后）
+
+## 封面 mediaImage
+- **禁止**向 `mediaImage` 传入带 Subsonic 鉴权 query 的 HTTP URL（系统进程无法加载）。
+- 使用 `CoverCache` 下载到沙箱 → `PixelMap`（经 `HttpTransport.requestBufferWithFallback`）后写入元数据。
+- endpoint 切换后 CoverCache 未命中时会自动走 remote 主干重拉。
+
+## 播放状态同步
+- 切歌 `loading` 使用 `PLAYBACK_STATE_PREPARE`（position 0）；**切网 migrate** 时应用内 `phase=playing` + `isBuffering=true`（由 migrate 生命周期驱动，非 Fetch 水位），AVSession 须上报 **`PLAYBACK_STATE_PAUSE`** + 冻结 `elapsedTime`；`replayAt` 成功进入 `playing` 后自动恢复。
+- `PlaybackSnapshot.isBuffering` + `isProgressFrozen()`：缓冲中 UI 与 AVSession 均不推进进度。
+- 播放中进度推送节流约 **1Hz**；切歌/seek/暂停/phase/buffering 变化立即推送。
+- 元数据 `setAVMetadata` 仅在切歌、封面或时长变化时更新，禁止随进度 tick 重复写入。
+
+## 后台
+- `module.json5`：`backgroundModes: ["audioPlayback"]` + `KEEP_BACKGROUND_RUNNING`。
+- 播放中 `BackgroundPlayback.start`，暂停/空闲 `stop`/`update`。
+
+## 参考
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/using-avsession-for-playback

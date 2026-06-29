@@ -1,0 +1,10 @@
+{
+  "name": "sonar",
+  "version": "1.0.0",
+  "description": "Sonar entry module",
+  "main": "",
+  "author": "",
+  "license": "",
+  "dependencies": {}
+}
+

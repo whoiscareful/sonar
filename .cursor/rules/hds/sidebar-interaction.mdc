@@ -1,0 +1,56 @@
+---
+description: HDS 侧边栏、即时操作、核心操作栏与应用内多窗规范
+alwaysApply: false
+---
+
+# HDS 侧边栏与扩展交互规范
+
+## 文档要点总览
+- HDS 扩展 **侧边栏**（Overlay / Embed / 半屏居中）、**侧边栏菜单**（一二级 + 红点）、**即时操作**（非模态通知）、**核心操作栏**（主按钮展开/收起）、**应用内多窗**入口。
+- 与 ArkUI 多窗 **适配**（声明多窗、布局分屏）互补：HDS 侧重应用内并行窗口入口与视觉，ArkUI 侧重 Window/Ability 层能力。
+
+## 侧边栏（HdsNavigation 相关）
+
+| 模式 | 场景 |
+| --- | --- |
+| Overlay | 侧边栏浮于内容之上，可显隐 |
+| Embed | 侧边栏与内容并列嵌入 |
+| 半屏居中 | 大屏下侧边栏半屏、内容居中 |
+
+- 侧边栏菜单：支持一、二级菜单与新消息 **红点** 提醒。
+- PC/2in1 效率场景优先 Embed 或系统分栏；Phone 常用 Overlay 抽屉。
+
+## 即时操作（Instant Action）
+- **非模态** 通知组件：图文 + 快速操作按钮，轻量反馈（类似轻提示 + 操作）。
+- 区别于 `openCustomDialog` 模态框（见 `arkui/interaction-dialogs.mdc`）。
+- 配置项包括持久展示、定时展示等（Persistent / Scheduled notification pop-up）。
+
+## 核心操作栏（Core Action Bar）
+- 组合多个按钮；**主按钮** 可展开/收起联动动效。
+- 两种配置：**含主按钮** / **不含主按钮**，按是否需突出单一 Primary Action 选型。
+- 操作数量宜精简，避免与底部 `HdsTabs` 主导航语义冲突。
+
+## 应用内多窗
+- 单应用 **多窗口入口**：自定义图标、背板颜色与大小，多窗并行。
+- 与系统「多窗模式」配合时在 `module.json5` 声明支持（ArkUI 多窗适配文档）。
+- 勿与 FloatingTabBar miniBar、独立播放条等重复占底部交互区（Sonar 见 `hds/tabs-bar-floating.mdc`）。
+
+## 开发落地清单
+- 侧边栏显隐与 `NavPathStack` 深度协调：抽屉打开时返回键先关抽屉再 pop 页面。
+- 即时操作不阻塞主流程；自动消失时长可配置，支持用户点击操作。
+- 多窗入口状态与各 Window 生命周期同步，避免重复创建 Ability。
+
+## 常见误区
+- 即时操作堆叠过多条，遮挡主内容。
+- 核心操作栏主按钮展开后与其他 FAB/miniBar 重叠。
+- 侧边栏 Embed 模式未预留宽度，小屏仍用 Embed 导致内容过窄。
+
+## 验收建议
+- 三端（Phone/Pad/PC）侧边栏模式符合 HIG；红点与未读数正确。
+- 即时操作可点、可-dismiss；核心栏展开动画不卡帧。
+- 多窗入口打开/关闭与系统任务视图一致。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-introduction
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-navigation-customized-area
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/multi-window-intro

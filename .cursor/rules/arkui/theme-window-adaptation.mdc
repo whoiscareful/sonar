@@ -1,0 +1,68 @@
+---
+description: ArkUI 深色模式、窗口安全区、软键盘与一多适配规范
+globs: sonar/**/*.ets
+alwaysApply: false
+---
+
+# ArkUI 主题、窗口与一多适配规范
+
+## 文档要点总览
+- 颜色/图片优先 **资源限定词**：`base` + `dark` 同名字段，运行时随系统主题切换。
+- 沉浸式与安全区：`expandSafeArea`、窗口避让区（状态栏/导航条/刘海）；与 HDS 悬浮底栏叠加时注意 `bottomRectHeight`。
+- 软键盘：`KeyboardAvoidMode` + 可选监听 `keyboardHeightChange`；标题栏可 `.expandSafeArea([SafeAreaType.KEYBOARD])` 固定。
+- 一多：断点 + 栅格见 `arkui/layout-containers.mdc`；无障碍见 `arkui/accessibility.mdc`。
+
+## 深色模式
+
+```
+resources/base/element/color.json   → bg_color: #FFFFFF
+resources/dark/element/color.json   → bg_color: #1A1A1A
+```
+
+```typescript
+Column()
+  .backgroundColor($r('app.color.bg_color'))
+```
+
+- 避免硬编码 `#FFFFFF`；SVG/图标提供 dark 变体或使用 Symbol 主题色。
+- 运行时只读：`this.getUIContext()?.getHostContext()?.config.colorMode`。
+
+## 窗口与安全区
+
+```typescript
+Column() { /* 内容 */ }
+  .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+```
+
+- 播放/阅读全沉浸：扩展安全区 + 自绘顶栏时注意触控命中。
+- Sonar：`@StorageProp('bottomRectHeight')` 与 HDS `barBottomMargin` 协调，避免内容被悬浮 Tab 遮挡。
+
+## 软键盘
+
+```typescript
+// UIAbility onWindowStageCreate
+windowStage.getMainWindowSync().getUIContext()
+  .setKeyboardAvoidMode(KeyboardAvoidMode.RESIZE);
+```
+
+- `OFFSET`：整页上推；`RESIZE`：压缩内容区；`NONE`：键盘覆盖。
+- 固定顶栏：`Row().expandSafeArea([SafeAreaType.KEYBOARD]).zIndex(1)`。
+- 收起键盘：`getFocusController().clearFocus()`。
+
+## 横竖屏与折叠屏
+- `window.setPreferredOrientation` 或在 `module.json5` 声明 preferred orientation。
+- 折叠态变化监听窗口尺寸，更新断点相关 `@State`（勿在 `build` 里读同步 API）。
+
+## 常见误区
+- 仅改代码色值未提供 `dark` 资源，深色模式对比度不足。
+- 悬浮底栏页面未留 bottom padding，最后一项被挡。
+- 键盘顶起时 HDS 底栏与输入框双重偏移。
+
+## 验收建议
+- 深浅色切换无闪白、无不可读文本。
+- 有/无手势条设备底栏间距正确；输入法弹出时焦点输入框可见。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-dark-light-color-adaptation
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-layout-safe-area
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-common-components-textinput#软键盘适配

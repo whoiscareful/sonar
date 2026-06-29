@@ -1,0 +1,52 @@
+---
+description: ArkUI 无障碍与适老化开发规范
+globs: sonar/**/*.ets
+alwaysApply: false
+---
+
+# ArkUI 无障碍规范
+
+## 文档要点总览
+- 无障碍（Accessibility）让读屏、放大、高对比等用户可完整使用应用；适老化侧重大触控目标与清晰层级。
+- 通过 `accessibilityText`、`accessibilityDescription`、`accessibilityGroup` 等补充语义；装饰性图标应标记或隐藏。
+- 与 HDS 组件并用时，按钮/页签仍需可聚焦、可读 label。
+
+## 开发落地清单
+- **可读名称**：图标按钮必须 `.accessibilityText('播放')` 或包裹带文字的语义组。
+- **分组**：`Row().accessibilityGroup(true)` 将封面+标题+操作读作一条。
+- **状态**：播放/选中/禁用通过 `accessibilityDescription` 或系统控件状态传递。
+- **触控目标**：交互热区建议 ≥ 48 vp；视觉可小但 `.responseRegion` 扩大命中。
+- **对比度**：文本与背景满足 WCAG 思路；深色模式单独验收（见 `arkui/theme-window-adaptation.mdc`）。
+- **动画**：尊重系统「减少动态效果」；必要动画勿唯一传达状态。
+
+```typescript
+Button({ type: ButtonType.Circle }) {
+  Image($r('app.media.ic_play'))
+}
+.width(48)
+.height(48)
+.accessibilityText('播放')
+.accessibilityDescription(this.playing ? '正在播放' : '已暂停')
+```
+
+## 适老化
+- 支持系统字体缩放；布局用 `maxLines` + 省略而非固定高度裁切。
+- 列表行高、页签 label 在放大后仍不重叠 — 用 `flexShrink`、断点换行。
+- 避免仅颜色区分状态（加图标或文案）。
+
+## Sonar 相关
+- 根 Tab：`FloatingTabBar` 中 `a11yLabel` 已用于页签；miniBar 操作按钮须有 accessibilityText。
+- 封面图 decorative 时可 `.accessibilityGroup(true)` 由父级朗读曲名。
+
+## 常见误区
+- `Image` 按钮无 accessibilityText，读屏只读「图片」。
+- 整个列表项重复朗读子控件（未 `accessibilityGroup`）。
+- 横滑删除仅视觉提示，无读屏说明。
+
+## 验收建议
+- 开启 TalkBack/读屏完整走通：登录、浏览、播放、切 Tab。
+- 最大字体档无重叠、无不可点控件。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-universal-attributes-accessibility
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-support-accessibility-friendliness

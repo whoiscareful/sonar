@@ -1,0 +1,96 @@
+---
+description: HarmonyOS 后台上传下载规范（request.agent）
+alwaysApply: false
+---
+
+# 后台上传下载规范（request.agent）
+
+## 文档要点总览
+
+- **request.agent** 提供系统托管的**上传/下载**任务：后台执行、进度回调、暂停/恢复、断点续传（下载）。
+- 模块：`import { request } from '@kit.BasicServicesKit'`（非 NetworkKit，属系统网络「上传下载」能力）。
+- 适用：大文件、需进度 UI、切后台仍继续；小 JSON 仍用 `http.request`。
+- 权限：`ohos.permission.INTERNET`；后台任务可能还需长时任务 / 数据同步等权限（按场景）。
+- 官方：[上传下载](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/upload-request)
+
+## 与 http 模块对比
+
+| 能力 | http.request / requestInStream | request.agent |
+| --- | --- | --- |
+| 典型 payload | JSON、中小文件、自定义流 | 大文件上传/下载 |
+| 生命周期 | 应用进程内 | 系统任务管理，可后台 |
+| 断点续传 | 需自实现 Range | 下载内置 |
+| 暂停恢复 | destroy 即取消 | `pause()` / `resume()` |
+
+## 后台上传
+
+```typescript
+import { request } from '@kit.BasicServicesKit';
+import { common } from '@kit.AbilityKit';
+
+const context = getContext(this) as common.UIAbilityContext;
+
+const config: request.agent.Config = {
+  action: request.agent.Action.UPLOAD,
+  url: 'https://example.com/upload',
+  mode: request.agent.Mode.BACKGROUND,
+  method: 'POST',
+  data: formItems, // FormItem 数组
+};
+
+const task = await request.agent.create(context, config);
+task.on('progress', (progress) => { /* 进度 */ });
+task.on('completed', (progress) => { /* 完成 */ });
+task.on('failed', (progress) => { /* 失败 */ });
+
+await task.start();
+await task.pause();
+await task.resume();
+// task.remove() 释放
+```
+
+## 后台下载
+
+```typescript
+const config: request.agent.Config = {
+  action: request.agent.Action.DOWNLOAD,
+  url: 'https://example.com/file.zip',
+  mode: request.agent.Mode.BACKGROUND,
+  saveas: './downloads/file.zip', // 相对应用目录
+  overwrite: true,
+  gauge: true, // 通知栏进度
+};
+
+const task = await request.agent.create(context, config);
+task.on('progress', (progress) => { /* bytes */ });
+await task.start();
+```
+
+## 约束与注意
+
+- 部分上传场景仅支持 **应用沙箱路径**（如 `cacheDir` / `filesDir`），不能直接把 Picker 返回的 uri 当路径用，须先 copy 到沙箱。
+- 上传文件类型、HTTPS 限制以当前 SDK 文档为准（历史版本曾有 HTTP-only 上传限制，新项目以官方为准）。
+- 任务结束调用 `remove()` 释放；Ability 销毁时取消或 detach 监听。
+- 与 **Network Kit HTTP 流式** 二选一：音乐长流播放 Sonar 用 `HttpTransport.openStream`，非 `request.agent`。
+
+## 开发落地清单
+
+- 大文件下载优先 agent；需要精细 Range/与播放管线耦合时用 `http.requestInStream`。
+- 计费网络下载前检查 `NetworkStatus.isMetered()` 或用户设置。
+- 失败重试策略与任务 id 持久化（可选）便于续传。
+
+## 常见误区
+
+- 小 API 调用滥用 agent，增加系统任务开销。
+- 未 copy Picker uri 到沙箱导致上传 404/403。
+- 创建多个 task 未 `remove()`，通知栏残留。
+
+## 验收建议
+
+- 切后台下载/上传继续，进度可恢复。
+- 暂停/恢复/取消状态与 UI 一致。
+
+## 参考文档
+
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/upload-request
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-request

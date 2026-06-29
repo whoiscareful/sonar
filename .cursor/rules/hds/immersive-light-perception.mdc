@@ -1,0 +1,70 @@
+---
+description: HarmonyOS 沉浸光感（HDS）开发与选型规范
+alwaysApply: true
+---
+
+# 鸿蒙沉浸光感（HDS）规范
+
+## 文档要点总览
+- 自 HarmonyOS 6.1.0(23) 起，HDS 组件新增沉浸光感材质能力。
+- 官方推荐优先使用系统自适应方案，系统会按设备算力动态平衡显示效果与性能。
+- 主要应用位点是 `HdsNavigation` 标题栏按钮与 `HdsTabs` 底部悬浮页签。
+
+## 适用范围与能力边界
+- 适用版本：HarmonyOS 6.1.0(23)+，并依赖 HDS 相关组件能力。
+- 目标组件：
+  - 标题栏：`titleBar.style.systemMaterialEffect`
+  - 底部页签：`barFloatingStyle.systemMaterialEffect`
+- 若项目处于多端差异化适配，沉浸光感策略应按设备能力动态降级，而非固定高等级。
+
+## 核心设计原则
+- 默认原则：`materialType: ADAPTIVE` + `materialLevel: ADAPTIVE`。
+- 性能优先：视觉效果与流畅度冲突时，优先流畅、温控和稳定帧率。
+- 范围收敛：沉浸光感用于导航与页签等关键层，不做全局泛化叠加。
+- 策略一致：标题栏与底部页签使用同一等级策略，避免 UI 质感割裂。
+
+## 材质等级决策表
+- 默认：`ADAPTIVE / ADAPTIVE`（系统自适应，首选）。
+- 自定义场景（品牌视觉强约束）：
+  1. 调用 `hdsMaterial.getSystemMaterialTypes()` 查询设备材质能力。
+  2. 若支持 `IMMERSIVE`：可选 `EXQUISITE` 或 `GENTLE`。
+  3. 若不支持 `IMMERSIVE`：统一降级为 `SMOOTH`，降低卡顿与发热风险。
+
+## 开发落地清单
+- 导入模块：`@kit.UIDesignKit`（含 `hdsMaterial`）与所需 ArkUI 能力。
+- 在 `aboutToAppear` 执行一次能力探测并写入状态，避免重复探测。
+- 将探测结果同时作用于标题栏与底部页签的 `systemMaterialEffect`。
+- 可保留简短注释，说明“为何该等级”（系统自适应/性能兜底/品牌定制）。
+- 避免在滚动、手势等高频路径里频繁切换 `materialLevel`。
+
+## 参考代码骨架（ArkTS，能力探测 + 兜底）
+```typescript
+let level: hdsMaterial.MaterialLevel = hdsMaterial.MaterialLevel.ADAPTIVE;
+const types = hdsMaterial.getSystemMaterialTypes();
+if (types.indexOf(hdsMaterial.MaterialType.IMMERSIVE) < 0) {
+  level = hdsMaterial.MaterialLevel.SMOOTH;
+}
+```
+
+## 组件配置骨架（双位点一致）
+```typescript
+systemMaterialEffect: {
+  materialType: hdsMaterial.MaterialType.ADAPTIVE,
+  materialLevel: level
+}
+```
+
+## 验收与回归建议
+- 低中高性能设备各抽样 1 台，确认首帧与滑动无明显抖动。
+- 连续切换页面、深浅色主题、前后台切换后，材质效果保持稳定。
+- 长列表滚动 3-5 分钟观察温控与掉帧，出现风险时优先回落 `SMOOTH`。
+- 标题栏与底部页签视觉一致，不出现一处“重玻璃”一处“轻玻璃”。
+
+## 常见误区
+- 误区 1：全局统一强效果等级，忽略设备差异与温控。
+- 误区 2：仅配置一个位点（只配标题栏或只配页签），导致体验割裂。
+- 误区 3：每次 `build` 重新探测能力，造成不必要开销。
+- 误区 4：把沉浸光感当作“必开高配特效”，而不是“按能力自适配”。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-hds-component-material

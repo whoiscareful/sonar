@@ -1,0 +1,138 @@
+---
+description: HarmonyOS WebSocket 与 Socket（TCP/UDP/TLS）开发规范
+alwaysApply: false
+---
+
+# WebSocket 与 Socket 规范
+
+## 文档要点总览
+
+- **WebSocket**：基于 HTTP 升级的双向长连接，适合实时推送、聊天、协作编辑。
+- **Socket**：底层 TCP / UDP / TLS，适合自定义协议；**不支持域名**，须先用 `connection.getAddressesByName` 解析 IP。
+- 权限：`ohos.permission.INTERNET`。
+- 官方：[WebSocket 连接](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/websocket-connection) / [Socket 连接](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/socket-connection)
+
+## WebSocket
+
+### 流程
+
+1. `webSocket.createWebSocket()` 创建实例。
+2. 订阅 `open` / `message` / `close` / `error`（可选 `headersReceive`）。
+3. `connect(url, options)` 建立连接。
+4. `send()` 收发；完毕 `close()`。
+
+```typescript
+import { webSocket } from '@kit.NetworkKit';
+
+const ws = webSocket.createWebSocket();
+
+ws.on('open', () => {
+  ws.send('hello');
+});
+ws.on('message', (err, data: string | ArrayBuffer) => {
+  if (!err) { /* 处理 data */ }
+});
+ws.on('close', (err, value) => { /* code / reason */ });
+ws.on('error', (err) => { /* 错误 */ });
+
+ws.connect('wss://example.com/ws', {
+  header: { 'Authorization': 'Bearer token' },
+});
+
+// 结束
+ws.close({ code: 1000, reason: 'done' });
+```
+
+### 注意
+
+- 使用 **wss://** 时证书策略同 HTTP（系统 CA / `caPath` / 跳过校验仅调试）。
+- 默认网络切换后连接可能失效，须配合 `NetConnection` 监听并 `close` + 重连。
+- 心跳与重连策略由应用实现；避免主线程阻塞 `send`。
+
+## Socket（TCP / UDP / TLS）
+
+### 模块导入
+
+```typescript
+import { socket, connection } from '@kit.NetworkKit';
+```
+
+### TCP 示例
+
+```typescript
+// 1. DNS 解析（Socket 不支持域名）
+const addrs = await connection.getAddressesByName('example.com');
+const ip = addrs[0].address;
+
+const tcp = socket.constructTCPSocketInstance();
+await tcp.connect({
+  address: { address: ip, port: 8080, family: 1 },
+  timeout: 6000,
+});
+
+tcp.on('message', (info) => { /* 收数据 */ });
+
+await tcp.send({ data: 'Hello' });
+tcp.close();
+```
+
+### UDP
+
+```typescript
+const udp = socket.constructUDPSocketInstance();
+await udp.bind({ address: '0.0.0.0', port: 0, family: 1 });
+await udp.send({
+  data: 'payload',
+  address: { address: ip, port: 9090, family: 1 },
+});
+```
+
+### TLS（API 9+）
+
+```typescript
+const tls = socket.constructTLSSocketInstance();
+await tls.connect({
+  address: { address: ip, port: 443, family: 1 },
+  secureOptions: {
+    ca: [caArrayBuffer], // 可选，默认系统 CA
+  },
+});
+```
+
+- 跳过远端校验：`skipRemoteValidation` 仅调试。
+- 客户端证书、加密套件等同 HTTP TLS 配置思路。
+
+## WebSocket vs Socket vs HTTP
+
+| 维度 | WebSocket | Socket | HTTP |
+| --- | --- | --- | --- |
+| 协议 | WS/WSS，HTTP 升级 | TCP/UDP/TLS 原生 | 请求-响应 |
+| 域名 | URL 内可含域名 | **必须 IP** | URL 可含域名 |
+| 适用 | 双向实时、推送 | 自定义二进制协议 | REST、文件、流式 |
+| 切网 | 须应用重连 | 须 close + 重建 | 短连接自动跟随默认网 |
+
+## 开发落地清单
+
+- 长连接模块与 `NetConnection.register` 生命周期绑定，Ability 销毁时 `close` + `unregister`。
+- 发送大数据分片；接收侧注意背压。
+- TLS 生产环境禁止跳过校验。
+- 错误码 201：检查 `INTERNET` 权限。
+
+## 常见误区
+
+- TCP `connect` 直接填 hostname 导致失败。
+- 切 WiFi / 蜂窝后仍用旧 Socket 不重连。
+- WebSocket 未处理 `error` / `close`，UI 假在线。
+- UDP 未 `bind` 即 `send`（客户端须 bind）。
+
+## 验收建议
+
+- 切网、前后台、长时间 idle 后连接可恢复或明确断线提示。
+- WSS/TLS 证书错误可观测，非无限重试。
+
+## 参考文档
+
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/websocket-connection
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/socket-connection
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-socket
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-websocket

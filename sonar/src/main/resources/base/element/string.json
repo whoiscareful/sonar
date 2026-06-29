@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "Sonar 音乐客户端"
+    },
+    {
+      "name": "SonarAbility_desc",
+      "value": "自托管 Subsonic / Navidrome 音乐播放"
+    },
+    {
+      "name": "permission_keep_background_running_reason",
+      "value": "允许 Sonar 在后台继续播放音乐"
+    },
+    {
+      "name": "playback_notification_title",
+      "value": "Sonar 正在播放"
+    },
+    {
+      "name": "playback_notification_pause_hint",
+      "value": "已暂停播放"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+---
+description: HdsTabs 页签增强样式（模糊/分割线/出血）；悬浮见 hds/tabs-bar-floating
+globs: **/*Tab*.ets
+alwaysApply: false
+---
+
+# HDS 页签（HdsTabs）增强样式规范
+
+## 文档要点总览
+- `HdsTabs` 在 ArkUI `Tabs` 基础上提供：**分割线动态显隐**、**背景模糊**、**图标出血**、半屏居中对齐等。
+- **悬浮页签 + miniBar**、展开宽度：见 `hds/tabs-bar-floating.mdc`；历史反模式见 `hds/tabs-bar-floating-pitfalls.mdc`。
+- **沉浸光感材质**：见 `hds/immersive-light-perception.mdc`。
+
+## 适用范围
+- 模糊/分割线等见各子能力 API 门槛；悬浮与材质需 HarmonyOS 6.1.0(23)+。
+- 页签栏须 `BottomTabBarStyle` 或 `CustomBuilder`；**禁止** CustomBuilder 替代 `BottomTabBarStyle` 做主导航（图标不可见仍可点击）。
+
+## 增强能力清单
+- **Tab Bar Dividers**：滚动/切换时分割线跟手显隐。
+- **Tab Bar Blur**：页签栏背景模糊，与内容区层次分离。
+- **Tab Icon Bleed**：图标出血，增强选中态视觉。
+- **半屏居中**：大屏下页签栏半屏居中（与 `barWidth` 分档配合）。
+
+## 开发落地清单
+- `new BottomTabBarStyle(icon, label).labelStyle(...).iconStyle(...)`；`TabBarIconStyle` 无 `size` 字段。
+- 设备 API &lt; 60100 时 Sonar 降级普通 `Tabs`（`FloatingTabBar.supportsHdsTabs()`）。
+- `barFloatingStyle` 须用官方类型（`HdsTabsFloatingStyle` 等），禁止自建 interface。
+
+## 常见误区
+- 在增强样式文件里改 miniBar 宽度或叠第二套播放条（见 `hds/tabs-bar-floating.mdc`）。
+- 仅配页签材质不配标题栏（或反之），质感割裂。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-hds-tabs-bar-floating

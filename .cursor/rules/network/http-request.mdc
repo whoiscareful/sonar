@@ -1,0 +1,145 @@
+---
+description: HarmonyOS HTTP/HTTPS 数据请求与流式传输规范（http 模块）
+alwaysApply: false
+---
+
+# HTTP 数据请求规范（http 模块）
+
+## 文档要点总览
+
+- 支持 GET、POST、PUT、DELETE、HEAD、OPTIONS、TRACE、CONNECT 等；小 payload 用 **`request()`**，大文件/进度/长流用 **`requestInStream()`**。
+- API 22+ 支持 **HTTP 拦截器**；API 23+ 支持 **WebDAV**（`customMethod`）。
+- 权限：`ohos.permission.INTERNET`。
+- 与 RCP：标准 HTTP 用 `http`；场景化需求见 Remote Communication Kit 简介。
+- 官方：[使用 HTTP 访问网络](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/http-request)
+
+## 标准请求流程
+
+```typescript
+import { http } from '@kit.NetworkKit';
+
+const httpRequest = http.createHttp(); // 一请求一实例，不可复用
+try {
+  httpRequest.on('headersReceive', (header) => { /* 可选，早于 body */ });
+
+  const resp = await httpRequest.request(url, {
+    method: http.RequestMethod.GET,
+    header: { 'Accept': 'application/json' },
+    expectDataType: http.HttpDataType.STRING,
+    connectTimeout: 10000,
+    readTimeout: 30000,
+    usingCache: false,
+    priority: 1,
+  });
+
+  if (resp.responseCode === http.ResponseCode.OK) {
+    const body = resp.result as string;
+  }
+} finally {
+  httpRequest.off('headersReceive');
+  httpRequest.destroy();
+}
+```
+
+## 关键参数
+
+| 参数 | 说明 |
+| --- | --- |
+| `connectTimeout` | 连接超时（ms），默认 60000 |
+| `readTimeout` | 请求开始到结束总超时（含 DNS、连接、传输），默认 60000 |
+| `expectDataType` | `STRING` / `OBJECT` / `ARRAY_BUFFER` 等 |
+| `usingCache` | 默认 true；敏感或实时数据设 false |
+| `priority` | 并发优先级 1–1000，默认 1 |
+| `usingProtocol` | HTTP/1.1、HTTP/2、HTTP/3；HTTPS 默认 HTTP/2，失败回退 1.1 |
+| `caPath` / `clientCert` | 自定义 CA、双向 TLS（API 10+ / 11+） |
+| `multiFormDataList` | multipart 上传（API 11+） |
+| `Range`（header） | 断点续传下载（API 11+） |
+
+## 流式传输（requestInStream）
+
+大文件、音频流、关注进度时使用；避免整包 `result` 进内存。
+
+```typescript
+const httpRequest = http.createHttp();
+
+httpRequest.on('dataReceive', (chunk: ArrayBuffer) => {
+  // 追加写入缓冲或文件
+});
+httpRequest.on('dataReceiveProgress', (p: http.DataReceiveProgressInfo) => {
+  // p.receiveSize / p.totalSize
+});
+httpRequest.on('dataEnd', () => { /* 接收完毕 */ });
+
+await httpRequest.requestInStream(url, {
+  method: http.RequestMethod.GET,
+  header: { 'Range': 'bytes=1024-' }, // 可选续传
+  connectTimeout: 10000,
+  readTimeout: 120000, // 长流增大
+});
+
+httpRequest.off('dataReceive');
+httpRequest.off('dataReceiveProgress');
+httpRequest.off('dataEnd');
+httpRequest.destroy();
+```
+
+Sonar 播放：`AVPlayer` + Subsonic stream HTTP URL（`PipelineOrchestrator`）；下一首预加载 standby 或 `StreamWarmupPreloadStrategy` 经 `HttpTransport.openStream`（禁止业务层直接 `createHttp()`）。
+
+## WebDAV（API 23+）
+
+通过 `customMethod` 指定 MKCOL、PROPFIND、LOCK 等；配合 `header`（如 `Destination`、`Lock-Token`）与 `extraData`。
+
+## HTTP 拦截器（API 22+）
+
+在请求-响应生命周期插入全局逻辑（鉴权头、日志、缓存、重定向处理）。
+
+触发顺序：`INITIAL_REQUEST` → `CACHE_CHECKED` → `NETWORK_CONNECT` →（`REDIRECTION` 循环回 `NETWORK_CONNECT`）→ `FINAL_RESPONSE`。
+
+```typescript
+class AuthInterceptor implements http.HttpInterceptor {
+  async intercept(chain: http.HttpInterceptorChain): Promise<http.HttpResponse> {
+    const request = chain.getRequest();
+    // 修改 request.header
+    const response = await chain.proceed(request);
+    return response;
+  }
+}
+
+const chain = new http.HttpInterceptorChain();
+chain.addInterceptor(new AuthInterceptor());
+httpRequest.attachInterceptorChain(chain);
+```
+
+## 证书与安全
+
+- **默认**：HTTPS 信任系统预置 CA，公网服务无需额外配置。
+- **证书锁定**：`src/main/resources/base/profile/network_config.json` 配置 `network-security-config`（预置证书或公钥 pin）；服务器换证须发版更新。
+- **请求级 CA**：`caPath` / `caData`。
+- **跳过校验**：仅调试；HTTPS 用 `remoteValidation: 'skip'`（生产禁止）。
+- **调试**：`hdc shell openssl s_client -connect host:port -CApath /etc/security/certificates -brief`
+
+## 开发落地清单
+
+- 每个 `HttpRequest` 在 `finally` 中 `destroy()`。
+- 订阅了 `on('headersReceive'|'dataReceive'|...)` 须在销毁前对应 `off()`。
+- JSON REST 设置 `Content-Type`；POST body 用 `extraData`。
+- 取消请求：`destroy()` 中断进行中的 request / requestInStream。
+- 混淆：网络请求体字段名加入 ArkGuard 白名单（`-keep-property-name`）。
+
+## 常见误区
+
+- 多个并发请求共用一个 `HttpRequest` 实例。
+- 流式场景仍用 `request()` + `ARRAY_BUFFER` 整包加载。
+- 生产跳过 TLS 校验或 pin 过期未随服务器证书更新。
+- `readTimeout` 过短导致大文件传输中途断开。
+
+## 验收建议
+
+- 弱网 / 超时 / 取消路径无泄漏（重复 destroy 安全）。
+- 流式下载内存不随文件大小线性增长。
+- HTTPS 证书错误有明确错误码，非 silent fail。
+
+## 参考文档
+
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/http-request
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-http

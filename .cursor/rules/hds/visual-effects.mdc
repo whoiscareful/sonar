@@ -1,0 +1,71 @@
+---
+description: HDS 点光源、按压阴影与流光视效（hdsEffect）开发规范
+globs: sonar/**/*.ets
+alwaysApply: false
+---
+
+# HDS 视觉光效（hdsEffect）规范
+
+## 文档要点总览
+- `@kit.UIDesignKit` 的 `hdsEffect` 提供点光源、按压阴影、边缘/背景流光等沉浸视效。
+- 通过 `HdsEffectBuilder` + `.visualEffect(...)` 或 `.effect(...)` 挂载到组件。
+- **沉浸光感材质**（`systemMaterialEffect`）见 [`hds/immersive-light-perception.mdc`](hds/immersive-light-perception.mdc)，本节不重复。
+
+## 适用范围
+- API 20+（6.0.0）起逐步提供；**模拟器不支持** HDS 沉浸视效，须真机验证（见 `hds/overview.mdc`）。
+
+## 点光源（Point Light）
+
+```typescript
+import { hdsEffect } from '@kit.UIDesignKit';
+
+@State lightSource: hdsEffect.PointLightSourceType = hdsEffect.PointLightSourceType.NONE;
+
+Button('操作')
+  .visualEffect(new hdsEffect.HdsEffectBuilder()
+    .pointLight({
+      sourceType: this.lightSource,
+      illuminatedType: hdsEffect.PointLightIlluminatedType.BORDER
+    })
+    .buildEffect())
+  .onTouch((e: TouchEvent) => {
+    if (e.type === TouchType.Down) {
+      this.lightSource = hdsEffect.PointLightSourceType.BRIGHT;
+    } else if (e.type === TouchType.Up || e.type === TouchType.Cancel) {
+      this.lightSource = hdsEffect.PointLightSourceType.NONE;
+    }
+  })
+```
+
+- 单组件最多受 **12** 个光源照亮。
+- 支持组件：`Button`、`Toggle`、`Row`、`Column`、`Image`、`Flex`、`Stack`、`Select`、`Menu`、`MenuItem` 等（以文档为准）。
+- 光源初始在组件正中心，**不随组件位移** → **勿在滚动列表中**对移动项滥用。
+- `sourceType` 优先级高于 `options`；受光组件需有可见背景色。
+- 列表循环渲染：每项独立 `@State` 光源数组，按下标更新，勿共用单变量。
+
+## 按压阴影（Press Shadow）
+- `PressShadowType`：如 `BLEND_WHITE`、`BLEND_GRADIENT` 等，增强按压反馈。
+- 常与点光源组合；通过 `HdsEffectBuilder().pressShadow({...})` 配置。
+
+## 流光
+- **双边边缘流光**：胶囊、屏幕边缘场景。
+- **背景流光**：控件背后流动高光。
+- **自带背景的双边流光**：适配胶囊与边缘发光组合场景。
+
+## 开发落地清单
+- 光效仅用于关键可点击控件，勿全页铺满。
+- 与动画规范一致：优先短反馈，避免长时发光常亮（见 `arkui/animation.mdc`）。
+- 性能冲突时降级或关闭光效，优先帧率与温控。
+
+## 常见误区
+- 在 `LazyForEach` 里共用一份 `lightSource`，导致点一项全亮。
+- 模拟器验收失败误判为代码错误。
+- 与沉浸光感材质重复堆叠同一区域，过曝且耗 GPU。
+
+## 验收建议
+- 真机按压反馈清晰；松手后光效熄灭。
+- 列表快速滑动无异常常亮；5 分钟滑动无明显发热掉帧。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-visual-effect-point-light
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/ui-design-introduction

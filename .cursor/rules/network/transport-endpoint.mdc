@@ -1,0 +1,35 @@
+---
+description: Sonar 网络传输封装与 Endpoint 路由规范（项目内）
+alwaysApply: false
+---
+
+# 网络传输与 Endpoint 路由规范
+
+> HarmonyOS Network Kit 通用规范见 `network/overview.mdc` 及子规则；本文档为 Sonar 项目内强制约定。
+
+## 路由哲学
+
+- **remote 主干**：默认态，登录必须 ping 通，所有失败最终回落 remote。
+- **local 加速覆盖**：local 探测成功时临时接管；离开 WiFi/探测失败/单次请求 fallback 后交还 remote。
+- 业务层 **禁止** 读取 `activeEndpoint` 或区分内外网。
+
+## 强制规则
+
+- 禁止业务层直接 `http.createHttp()`。
+- REST JSON 必须 `HttpTransport.requestWithFallback`（经 `SubsonicApi`）。
+- 小二进制（封面）必须 `HttpTransport.requestBufferWithFallback`。
+- 音频播放：`MediaResourceService.openStream` 构建 URL → **AVPlayer HTTP 直连接口**（`PipelineOrchestrator.replayAt`）；禁止播放路径并行 Fetch。
+- 下一首预加载：`playback/preload/NextTrackPreloadCoordinator` + `StreamWarmupPreloadStrategy` 经 `HttpTransport.openStream`（与播放独立，不落盘）；standby 预加载用第二路 AVPlayer prepare。
+- Endpoint 切换必须经 `EndpointRouter`；长流 migrate 顺序：**`NetworkCoordinator` 先 `MediaResourceService.migrateActiveStreams(to)`，再 `PlaybackPipelineBridge` → `replayAt`**。
+
+## WiFi 信任缓存
+
+- SSID 缓存 TTL：30 天。
+- 未知 WiFi：local 探测 10s×3，失败保持 remote。
+- 已知 WiFi：3s×5，失败删缓存并保持 remote。
+
+## 参考
+
+- Network Kit 总览：`network/overview.mdc`
+- 官方：[系统网络开发指南](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/system-network)
+- 代码：`sonar/src/main/ets/sonar/network/` 目录结构

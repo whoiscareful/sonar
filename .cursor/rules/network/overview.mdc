@@ -1,0 +1,77 @@
+---
+description: Network Kit（网络服务）总览、API 选型与子规则索引
+alwaysApply: false
+---
+
+# Network Kit（网络服务）总览
+
+## 文档要点总览
+
+- **Network Kit** 提供应用侧网络访问能力：连接管理、HTTP/HTTPS、WebSocket、Socket（TCP/UDP/TLS）、后台上传下载等。
+- 统一模块：`import { http, webSocket, connection, socket } from '@kit.NetworkKit'`（旧版 `@ohos.net.*` 已迁移至 Kit 导入）。
+- 场景化增强能力可选 **Remote Communication Kit（RCP）**；标准 REST/流式场景优先 `http` 模块即可。
+- 官方入口：[系统网络开发指南](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/system-network)
+
+## API 选型决策
+
+| 场景 | 推荐模块 | 说明 |
+| --- | --- | --- |
+| REST / JSON / 小 payload | `http.createHttp().request()` | 默认首选 |
+| 大文件上传下载、需进度、长流 | `http.requestInStream()` | 分块收发，避免整包进内存 |
+| 后台可暂停/断点续传文件任务 | `request.agent`（BasicServicesKit） | 系统托管任务生命周期 |
+| 双向实时通道 | `webSocket.createWebSocket()` | 长连接、服务端推送 |
+| 原始 TCP/UDP/TLS | `socket.construct*SocketInstance()` | Socket **不支持域名**，须先 DNS 解析为 IP |
+| 网络状态 / 计费 / 连通性 / DNS | `connection` | 订阅 `NetConnection` 或同步查询 |
+| 表单、证书、场景化 RCP | Remote Communication Kit | 与标准 HTTP 二选一，勿重复封装 |
+
+```
+需要联网？
+├── 单次 JSON / 小数据        → http.request
+├── 音频流 / 大文件 / 进度    → http.requestInStream 或 request.agent
+├── 实时双向                  → webSocket
+├── 自定义协议 / 低层         → socket（先 connection.getAddressesByName）
+└── 离线门控 / WiFi 切换      → connection + NetConnection
+```
+
+## 权限（module.json5）
+
+| 权限 | 级别 | 用途 |
+| --- | --- | --- |
+| `ohos.permission.INTERNET` | normal | 所有出站网络（HTTP/WebSocket/Socket） |
+| `ohos.permission.GET_NETWORK_INFO` | normal | 查询默认网络、能力、DNS、`NetConnection` 订阅 |
+
+WiFi SSID 等需额外 `ohos.permission.GET_WIFI_INFO`（ConnectivityKit，见 Sonar `NetworkStatus`）。
+
+## 工程实践（通用）
+
+1. **集中封装**：业务层不 scattered 调用 `http.createHttp()`；超时、重试、取消、fallback 走统一 Transport（Sonar：`HttpTransport`，见 `network/transport-endpoint.mdc`）。
+2. **显式超时**：`connectTimeout` + `readTimeout`（默认 60000ms）；长流适当增大 `readTimeout`。
+3. **一请求一实例**：每个 `HttpRequest` 对应一个任务，**不可复用**；完毕 `destroy()`，并 `off()` 已订阅事件。
+4. **离线短路**：`connection.hasDefaultNetSync()` / `NET_CAPABILITY_VALIDATED` 失败时勿盲目发请求等超时。
+5. **计费网络**：`NET_CAPABILITY_NOT_METERED` 缺失时视为 metered，大下载需用户确认或降级。
+6. **默认网络迁移**：WiFi↔蜂窝切换后，长连接（Socket/WebSocket）须监听 `netAvailable`/`netLost` 并重建。
+7. **证书**：面向公网默认信任系统 CA；证书锁定用 `network_config.json`；跳过校验仅调试且须生产关闭。
+
+## 子规则索引
+
+| 主题 | 规则文件 | 官方指南 |
+| --- | --- | --- |
+| 网络连接管理 | `network/net-connection.mdc` | [管理网络连接](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/net-connection-manager) |
+| HTTP 请求 / 流式 / 证书 | `network/http-request.mdc` | [使用 HTTP 访问网络](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/http-request) |
+| WebSocket / Socket | `network/websocket-socket.mdc` | [WebSocket 连接](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/websocket-connection) / [Socket 连接](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/socket-connection) |
+| 后台上传下载 | `network/upload-download.mdc` | [上传下载](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/upload-request) |
+| Sonar Endpoint 路由 | `network/transport-endpoint.mdc` | 项目内规范 |
+
+## 常见误区
+
+- 大文件用 `request()` 整包加载导致 OOM；应 `requestInStream` 或 `request.agent`。
+- Socket 直接填域名连接失败；须 `connection.getAddressesByName` 解析 IP。
+- `HttpRequest` 复用或忘记 `destroy()`，后续请求异常或泄漏。
+- 未订阅网络变化，切网后仍用旧 Socket/WebSocket。
+- 生产环境 `remoteValidation: 'skip'` 或跳过 TLS 校验。
+
+## 参考文档
+
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/system-network
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-http
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-net-connection

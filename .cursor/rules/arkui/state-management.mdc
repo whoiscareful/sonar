@@ -1,0 +1,77 @@
+---
+description: ArkUI 状态管理 V1/V2 选型、装饰器与性能规范
+alwaysApply: true
+---
+
+# ArkUI 状态管理规范
+
+## 文档要点总览
+- 状态变量变更驱动 UI 最小化刷新；装饰器决定数据流向与观测深度。
+- HarmonyOS 6.1（API 23）起 **V2 装饰器稳定**，新模块优先 `@ComponentV2` + `@Local` / `@Param` / `@Event`。
+- 项目现有代码仍含 V1（如 `@StorageLink('playback')`），增量可 V2，全量迁移非必须。
+
+## V1 装饰器（存量）
+
+| 装饰器 | 作用 | 注意 |
+| --- | --- | --- |
+| `@State` | 组件私有可变状态 | 仅观测第一层 |
+| `@Prop` | 父→子单向 | **深拷贝**，大对象慎用 |
+| `@Link` | 父↔子双向 | 传参用 `$var` |
+| `@Provide` / `@Consume` | 跨层 | 按 key 匹配 |
+| `@Observed` + `@ObjectLink` | 类属性 | `@ObjectLink` **只读**，不能整体赋值 |
+| `@StorageLink` / `@StorageProp` | `AppStorage` | 全局变更广播所有订阅者 |
+
+## V2 装饰器（推荐，API 23+）
+
+| V1 | V2 | 说明 |
+| --- | --- | --- |
+| `@State` | `@Local` | 不可外部初始化 |
+| `@Prop` | `@Param` | 只读输入；`@Once` 一次性 |
+| `@Link` | `@Param` + `@Event` | 输入 + 回调输出 |
+| `@Observed` + `@ObjectLink` | `@ObservedV2` + `@Trace` | **深层观测** |
+| `AppStorage` | `AppStorageV2` | 配合 `@Trace` |
+| — | `PersistenceV2` | 持久化 + 观测 |
+
+```typescript
+@ObservedV2
+class TrackInfo {
+  @Trace title: string = '';
+  @Trace artist: string = '';
+}
+
+@ComponentV2
+struct NowPlayingRow {
+  @Param track: TrackInfo = new TrackInfo();
+  @Event onTap: () => void = () => {};
+
+  build() {
+    Row() {
+      Text(this.track.title)
+    }.onClick(() => this.onTap())
+  }
+}
+```
+
+## 性能与观测规则
+- `@State`/`@Prop`/`@Link` **不观测嵌套属性**；数组仅 push/splice/reassign/length，不观测元素内字段变更。
+- 高频变更勿用 `@StorageLink`；播放进度等节流后再写全局存储。
+- `@Prop` 每次父更新深拷贝 — 大列表项用 `@ObjectLink` 或 V2 `@Param` 引用类型 + `@Trace`。
+- `@ObjectLink` 不能 `this.task = new Task()`，应改属性 `this.task.done = true`。
+
+## 应用级状态（Sonar 实践）
+- 播放态：`AppStorage` 键 `playback` + `PlaybackSnapshot` 单源（见 `media/avsession-media-center.mdc`）。
+- Tab 索引：`@StorageLink('rootTabIndex')` 与 HDS 页签联动。
+
+## 常见误区
+- 期望 `@State obj.field = x` 刷新 UI（需 `@Observed` 或 V2 `@Trace`）。
+- 在 `@Builder` 里直接改 `@Link` 绑定的父状态而不通过回调。
+- V1/V2 混用同一对象链未读迁移指南，导致观测失效。
+
+## 验收建议
+- 改嵌套字段时确认目标组件是否带 `@Trace` / `@ObjectLink`。
+- 全局状态变更不会引发无关页面整树重建。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-state-management-overview
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-state-management-v1-v2-migration
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-new-local

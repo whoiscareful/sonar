@@ -1,0 +1,76 @@
+---
+description: ArkUI 自定义组件、Builder 与生命周期规范
+globs: sonar/**/*.ets
+alwaysApply: false
+---
+
+# ArkUI 组件与生命周期规范
+
+## 文档要点总览
+- 自定义组件由 `@Component` / `@ComponentV2` + `struct` + `build()` 构成；`@Entry` 标记可路由页面。
+- 复用 UI 片段：`@Builder`、`@BuilderParam`、`wrapBuilder`；样式复用：`@Extend`、`@Styles`、`AttributeModifier`。
+- 生命周期回调决定资源申请/释放时机，违反禁忌会导致闪动、泄漏或绑定断裂。
+
+## 适用范围
+- 所有 ArkTS 声明式 UI 组件。
+- V2 组件（`@ComponentV2`）新代码优先；与 V1 混用见 `arkui/state-management.mdc`。
+
+## 生命周期顺序与禁忌
+
+| 回调 | 时机 | 禁忌 |
+| --- | --- | --- |
+| `aboutToAppear()` | 首次 `build()` 前 | 可改状态；适合一次性初始化 |
+| `onDidBuild()` | `build()` 完成后 | **勿改状态、勿 `animateTo`**（API 12+） |
+| `aboutToDisappear()` | 销毁前 | **勿改状态**（尤其 `@Link`）；勿 async/await |
+| `aboutToReuse()` | `@Reusable` 复用时 | 用新 params 更新状态 |
+| `aboutToRecycle()` | 进入复用池前 | 释放 PixelMap、定时器等重资源 |
+| `onPageShow()` / `onPageHide()` | 仅 `@Entry` | 页面显隐，适合暂停动画/订阅 |
+
+冷启动顺序：`Parent aboutToAppear → Parent build → Parent onDidBuild → Child aboutToAppear → Child build → onPageShow`。
+
+## Builder 与样式
+
+```typescript
+@Builder
+function TitleRow(title: string) {
+  Row() { Text(title).fontSize(18) }
+}
+
+@Component
+struct MyPage {
+  @BuilderParam header: () => void = TitleRow;
+
+  build() {
+    Column() {
+      this.header()
+    }
+  }
+}
+```
+
+- `@Extend(Text)` / `@Styles`：静态样式扩展；多态用 `stateStyles`。
+- `AttributeModifier<T>`：可复用含 pressed 等状态的修饰器，适合按钮主题。
+
+## `@Reusable` 要点
+- 与 `LazyForEach` 同父级配合，显著降低列表创建开销。
+- `aboutToReuse` 必须同步更新展示数据；`aboutToRecycle` 释放大图/动画。
+- 禁止 `@Reusable` 嵌套 `@Reusable`。
+
+## 开发落地清单
+- 重逻辑放 `aboutToAppear`，勿在 `build()` 里 new 大对象或发网络请求。
+- 页面级订阅在 `aboutToDisappear` / `onPageHide` 对称注销。
+- 子组件输入用 `@Param`（V2）或 `@Prop`（V1），双向用 `@Link` 或 `@Param` + `@Event`。
+
+## 常见误区
+- 在 `aboutToDisappear` 修改 `@Link`，导致父组件异常刷新。
+- `@Builder` 内使用 `@State`（应放在组件 struct 上）。
+- 列表项不用 `@Reusable` 却频繁创建复杂子树。
+
+## 验收建议
+- 进出页面无泄漏（定时器、监听器成对释放）。
+- 列表快速滑动无错位、无旧封面残留。
+
+## 参考文档
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-create-custom-components
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-page-custom-components-lifecycle
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/arkts-builder

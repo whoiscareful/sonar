@@ -1,0 +1,130 @@
+---
+description: HarmonyOS NetConnection 网络连接管理规范（connection 模块）
+alwaysApply: false
+---
+
+# 网络连接管理规范（NetConnection）
+
+## 文档要点总览
+
+- `connection` 模块管理 **WiFi / 蜂窝 / Ethernet** 等多网络优先级、质量评估、默认网络查询、DNS 解析及状态订阅。
+- 典型用途：离线检测、计费网络门控、Bearer 类型判断、默认网络切换后重建长连接。
+- 权限：`ohos.permission.GET_NETWORK_INFO`（normal）。
+- 官方：[管理网络连接](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/net-connection-manager)
+
+## 基本概念
+
+| 概念 | 说明 |
+| --- | --- |
+| 网络生产者 | WiFi、蜂窝、以太网等数据网络提供方 |
+| 网络消费者 | 应用或系统服务 |
+| 网络探测 | 绑定/DNS/HTTP/HTTPS 探测，避免切到不可用网络 |
+| 默认网络 | 系统当前选用网络（通常 WiFi / 蜂窝 / 以太网之一），与应用是否 bind 无关 |
+| NetHandle | 网络唯一标识（`netId`） |
+
+## 同步查询（轻量门控）
+
+```typescript
+import { connection } from '@kit.NetworkKit';
+
+// 是否有默认网络
+const hasNet = connection.hasDefaultNetSync();
+
+// 默认网络句柄与能力（Sonar：NetworkStatus.readCapabilities）
+const netHandle = connection.getDefaultNetSync();
+if (netHandle.netId === 0) {
+  // 无默认网络，异常态
+}
+const caps = connection.getNetCapabilitiesSync(netHandle);
+
+const isWifi = caps.bearerTypes?.includes(connection.NetBearType.BEARER_WIFI);
+const isCellular = caps.bearerTypes?.includes(connection.NetBearType.BEARER_CELLULAR);
+const isMetered = !caps.networkCap?.includes(connection.NetCap.NET_CAPABILITY_NOT_METERED);
+```
+
+## 判断能否访问互联网
+
+```typescript
+const cap = caps.networkCap ?? [];
+if (cap.includes(connection.NetCap.NET_CAPABILITY_CHECKING_CONNECTIVITY)) {
+  // 连通性校验中，稍后重试
+} else if (cap.includes(connection.NetCap.NET_CAPABILITY_VALIDATED)) {
+  // 可访问互联网
+} else {
+  // 不可访问（ captive portal / 无路由等）
+}
+```
+
+## 订阅网络状态（NetConnection）
+
+```typescript
+import { connection } from '@kit.NetworkKit';
+import { BusinessError } from '@kit.BasicServicesKit';
+
+// 默认网络：createNetConnection() 无参
+// 指定网络：传入 NetSpecifier + 可选超时（秒）
+const conn = connection.createNetConnection({
+  netCapabilities: {
+    bearerTypes: [connection.NetBearType.BEARER_WIFI],
+    networkCap: [connection.NetCap.NET_CAPABILITY_INTERNET],
+  },
+}, 10);
+
+conn.on('netAvailable', (handle: connection.NetHandle) => { /* 可用 */ });
+conn.on('netLost', (handle: connection.NetHandle) => { /* 丢失 */ });
+conn.on('netUnavailable', () => { /* 指定网络不可用 */ });
+conn.on('netCapabilitiesChange', (info: connection.NetCapabilityInfo) => { /* 能力变化 */ });
+conn.on('netConnectionPropertiesChange', (info: connection.NetConnectionPropertyInfo) => { /* 连接属性变化 */ });
+
+conn.register((err: BusinessError) => {
+  if (err) { /* 注册失败 */ }
+});
+
+// 生命周期结束必须 unregister
+conn.unregister(() => {});
+```
+
+## 默认网络切换与长连接重建
+
+系统在弱 WiFi、关 WiFi、蜂窝差等场景会切换默认网络。应用侧须：
+
+1. `createNetConnection()` 订阅 `netAvailable` / `netLost`。
+2. 关闭旧 Socket / WebSocket / HTTP 长流。
+3. 在新默认网络上重建连接（HTTP 短请求通常由系统路由，长连接须应用重建）。
+
+## DNS 解析
+
+- Socket 层不支持域名，须先解析：
+
+```typescript
+const addresses = await connection.getAddressesByName('example.com');
+// addresses[].address 为 IP 字符串
+```
+
+- 使用默认网络解析；指定网络场景先 `getDefaultNet` 再解析。
+
+## 异步 API 约定
+
+- 大部分 `connection` API 提供 **callback** 与 **Promise** 两种形式；项目内优先 Promise/async 以保持错误链一致。
+
+## Sonar 实践
+
+- `NetworkStatus`：`getNetworkType()` / `isOnWifi()` / `isMetered()` 基于 `getDefaultNetSync` + `getNetCapabilitiesSync`。
+- WiFi SSID 来自 ConnectivityKit `wifiManager`（非 connection 模块），与 Bearer 判断组合使用。
+- Endpoint 切换由 `EndpointRouter` + `NetworkCoordinator` 处理，业务层不直接读 `activeEndpoint`（见 `network/transport-endpoint.mdc`）。
+
+## 常见误区
+
+- 仅 `hasDefaultNetSync()` 为 true 就认为可上网；须检查 `NET_CAPABILITY_VALIDATED`。
+- 订阅 `NetConnection` 后从不 `unregister()`，Ability 销毁后仍回调。
+- 切网后未重建 Socket/WebSocket，表现为间歇性发送失败。
+
+## 验收建议
+
+- 开关 WiFi / 蜂窝、弱信号切换后，长连接业务可自动恢复或明确提示。
+- 无网时 REST 快速失败，不长时间 hang 在超时。
+
+## 参考文档
+
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/net-connection-manager
+- https://developer.huawei.com/consumer/cn/doc/harmonyos-references/js-apis-net-connection
