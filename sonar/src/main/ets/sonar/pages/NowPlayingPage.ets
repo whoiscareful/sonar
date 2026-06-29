@@ -25,6 +25,10 @@ export struct NowPlayingPage {
   @State private lastPositionMs: number = 0;
   @State private showLyricAdjust: boolean = false;
   @State private isFullscreenLyric: boolean = false;
+  // 全屏模式下控制按钮的显示状态
+  @State private showControls: boolean = true;
+  private hideControlsTimerId: number | null = null;
+  private static readonly HIDE_CONTROLS_DELAY_MS: number = 3000;
 
   aboutToAppear(): void {
     this.loadLyricsIfNeeded();
@@ -33,6 +37,40 @@ export struct NowPlayingPage {
 
   aboutToDisappear(): void {
     this.stopLyricUpdateTimer();
+    this.cancelHideControlsTimer();
+  }
+
+  /**
+   * 启动全屏模式下控制按钮自动隐藏定时器
+   */
+  private scheduleHideControls(): void {
+    this.cancelHideControlsTimer();
+    if (!this.isFullscreenLyric) {
+      return;
+    }
+    this.hideControlsTimerId = setTimeout(() => {
+      if (this.isFullscreenLyric) {
+        this.showControls = false;
+      }
+    }, NowPlayingPage.HIDE_CONTROLS_DELAY_MS) as number;
+  }
+
+  /**
+   * 取消自动隐藏定时器
+   */
+  private cancelHideControlsTimer(): void {
+    if (this.hideControlsTimerId !== null) {
+      clearTimeout(this.hideControlsTimerId);
+      this.hideControlsTimerId = null;
+    }
+  }
+
+  /**
+   * 上划显示控制按钮并重新计时
+   */
+  private showControlsTemporarily(): void {
+    this.showControls = true;
+    this.scheduleHideControls();
   }
 
   private startLyricUpdateTimer(): void {
@@ -135,6 +173,15 @@ export struct NowPlayingPage {
 
   private toggleFullscreenLyric(): void {
     this.isFullscreenLyric = !this.isFullscreenLyric;
+    if (this.isFullscreenLyric) {
+      // 进入全屏模式：显示控制按钮并启动自动隐藏定时器
+      this.showControls = true;
+      this.scheduleHideControls();
+    } else {
+      // 退出全屏模式：取消定时器并恢复显示
+      this.cancelHideControlsTimer();
+      this.showControls = true;
+    }
   }
 
   private formatTime(ms: number): string {
@@ -488,59 +535,85 @@ export struct NowPlayingPage {
 
   /**
    * 全屏歌词模式布局
+   * 进入后延迟几秒自动隐藏控制按钮，上划屏幕重新显示
    */
   @Builder
   private buildFullscreenLyricMode() {
-    Column() {
-      Column()
-        .width('100%')
-        .height(this.topInset)
-
-      // 歌曲信息（固定在顶部）
+    Stack() {
       Column() {
-        this.buildTrackInfo(true)
+        Column()
+          .width('100%')
+          .height(this.topInset)
+
+        // 歌曲信息（固定在顶部）
+        Column() {
+          this.buildTrackInfo(true)
+        }
+        .width('100%')
+        .backgroundColor(UiTokens.COLOR_PAGE_BG)
+        .opacity(this.showControls ? 1 : 0)
+        .animation({ duration: 300, curve: Curve.EaseInOut })
+
+        // 全屏歌词区域
+        LyricView({
+          lines: this.lyricVm.lines,
+          currentLineIndex: this.lyricVm.currentLineIndex,
+          visible: this.lyricVm.hasLyrics(),
+          viewHeight: this.fullscreenLyricHeight(),
+          lineHeight: 48,
+          activeFontSize: 24,
+          inactiveFontSize: 18,
+          activeColor: UiTokens.COLOR_PRIMARY,
+          inactiveColor: UiTokens.COLOR_TEXT_SECONDARY,
+          isLoading: this.isLoading(),
+          hasLyrics: this.lyricVm.hasLyrics(),
+          isFullscreen: true,
+          onLineClick: (lineIndex: number, timeMs: number) => {
+            this.onLyricLineClick(lineIndex, timeMs);
+          }
+        })
+          .width('100%')
+
+        Blank()
+          .height(10)
+
+        // 播放进度条
+        Column() {
+          OuterScreenProgressBar({
+            barWidth: this.containerWidth * 0.88
+          })
+        }
+        .width(this.containerWidth * 0.88)
+        .padding({ left: 8, right: 8 })
+        .opacity(this.showControls ? 1 : 0)
+        .animation({ duration: 300, curve: Curve.EaseInOut })
+
+        // 播放控制按钮
+        Column() {
+          this.buildPlayControls()
+        }
+        .opacity(this.showControls ? 1 : 0)
+        .animation({ duration: 300, curve: Curve.EaseInOut })
+
+        Column()
+          .width('100%')
+          .height(this.bottomInset)
       }
       .width('100%')
-      .backgroundColor(UiTokens.COLOR_PAGE_BG)
+      .height('100%')
 
-      // 全屏歌词区域
-      LyricView({
-        lines: this.lyricVm.lines,
-        currentLineIndex: this.lyricVm.currentLineIndex,
-        visible: this.lyricVm.hasLyrics(),
-        viewHeight: this.fullscreenLyricHeight(),
-        lineHeight: 48,
-        activeFontSize: 24,
-        inactiveFontSize: 18,
-        activeColor: UiTokens.COLOR_PRIMARY,
-        inactiveColor: UiTokens.COLOR_TEXT_SECONDARY,
-        isLoading: this.isLoading(),
-        hasLyrics: this.lyricVm.hasLyrics(),
-        isFullscreen: true,
-        onLineClick: (lineIndex: number, timeMs: number) => {
-          this.onLyricLineClick(lineIndex, timeMs);
-        }
-      })
-        .width('100%')
-
-      Blank()
-        .height(10)
-
-      // 播放进度条
-      Column() {
-        OuterScreenProgressBar({
-          barWidth: this.containerWidth * 0.88
-        })
+      // 控制按钮隐藏时，覆盖透明手势层，上划显示控制按钮
+      if (!this.showControls) {
+        Column()
+          .width('100%')
+          .height('100%')
+          .gesture(
+            PanGesture({ fingers: 1, direction: PanDirection.Up, distance: 10 })
+              .onActionStart(() => {
+                this.showControlsTemporarily();
+              })
+          )
       }
-      .width(this.containerWidth * 0.88)
-      .padding({ left: 8, right: 8 })
-
-      // 播放控制按钮
-      this.buildPlayControls()
-
-      Column()
-        .width('100%')
-        .height(this.bottomInset)
     }
     .width('100%')
     .height('100%')
