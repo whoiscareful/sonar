@@ -1,10 +1,10 @@
 {
   "name": "sonar",
   "version": "1.0.0",
-  "description": "Sonar entry module",
+  "description": "HeartTone（心音）entry module",
   "main": "",
-  "author": "",
-  "license": "",
+  "author": "whoiscareful",
+  "license": "MIT",
   "dependencies": {}
 }
 

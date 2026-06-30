@@ -7,7 +7,7 @@ export type ScreenProfile = 'outer' | 'standard';
 const STORAGE_KEY: string = 'screenProfile';
 const PREVIEW_KEY: string = 'outerScreenPreview';
 const DOMAIN: number = 0x0000;
-const TAG: string = 'Sonar.ScreenProfile';
+const TAG: string = 'HeartTone.ScreenProfile';
 
 interface WindowVpSize {
   widthVp: number;

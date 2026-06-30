@@ -18,7 +18,7 @@ import { MusicTabSettingsStore } from '../settings/MusicTabSettingsStore';
 import { RecentPlayHistoryStore } from '../settings/RecentPlayHistoryStore';
 
 const DOMAIN = 0x0000;
-const TAG = 'Sonar.Index';
+const TAG = 'HeartTone.Index';
 const BACK_PRESS_INTERVAL: number = 2000;
 
 @Entry

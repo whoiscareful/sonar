@@ -15,7 +15,7 @@ import {
 import { UiTokens } from '../ui/tokens/UiTokens';
 
 const DOMAIN = 0x0000;
-const TAG = 'Sonar.LoginPage';
+const TAG = 'HeartTone.LoginPage';
 /** 服务器 Tab 四行输入 + 按钮高度，两 Tab 共用固定槽位避免切换抖动 */
 const LOGIN_FORM_BODY_MIN_HEIGHT: number = 292;
 
@@ -183,7 +183,7 @@ export struct LoginPage {
     Column() {
       Blank().height(48)
       Column() {
-        Text('Sonar')
+        Text('心音')
           .fontSize(48)
           .fontWeight(FontWeight.Bold)
           .fontColor(UiTokens.COLOR_TEXT_PRIMARY)

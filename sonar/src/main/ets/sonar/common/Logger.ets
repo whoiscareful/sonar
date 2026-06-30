@@ -1,7 +1,7 @@
 import { hilog } from '@kit.PerformanceAnalysisKit';
 
 const DOMAIN = 0x534E; // 'SN'
-const PREFIX = 'Sonar';
+const PREFIX = 'HeartTone';
 
 export class Logger {
   static debug(tag: string, msg: string): void {

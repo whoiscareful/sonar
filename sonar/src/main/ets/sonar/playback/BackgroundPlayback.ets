@@ -123,7 +123,7 @@ export class BackgroundPlayback {
   }
 
   private static async publishNotification(songTitle: string, songArtist: string, isPlaying: boolean): Promise<void> {
-    const title: string = songTitle.length > 0 ? songTitle : 'Sonar';
+    const title: string = songTitle.length > 0 ? songTitle : '心音';
     const text: string = songArtist.length > 0 ? songArtist : '未知歌手';
     const hint: string = isPlaying ? '正在播放' : '已暂停播放';
     const request: notificationManager.NotificationRequest = {
