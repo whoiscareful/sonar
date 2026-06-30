@@ -635,7 +635,7 @@ export struct NowPlayingPage {
       }
       .width('100%')
       .height('100%')
-      .transition(TransitionEffect.OPACITY.animation({ duration: 300, curve: Curve.EaseInOut }))
+      .transition(TransitionEffect.OPACITY.animation({ duration: 400, curve: Curve.FastOutSlowIn }))
       .visibility(this.isFullscreenLyric ? Visibility.None : Visibility.Visible)
 
       // 全屏歌词模式
@@ -644,7 +644,7 @@ export struct NowPlayingPage {
       }
       .width('100%')
       .height('100%')
-      .transition(TransitionEffect.OPACITY.animation({ duration: 300, curve: Curve.EaseInOut }))
+      .transition(TransitionEffect.OPACITY.animation({ duration: 400, curve: Curve.FastOutSlowIn }))
       .visibility(this.isFullscreenLyric ? Visibility.Visible : Visibility.None)
     }
     .width('100%')

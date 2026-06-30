@@ -55,7 +55,7 @@ export struct LyricView {
       return;
     }
     this.lastScrolledIndex = this.currentLineIndex;
-    this.scroller.scrollToIndex(this.currentLineIndex, true, ScrollAlign.CENTER);
+    this.scroller.scrollToIndex(this.currentLineIndex, false, ScrollAlign.CENTER, { duration: 600 });
   }
 
   /**
@@ -76,19 +76,16 @@ export struct LyricView {
   }
 
   /**
-   * 计算透明度
+   * 计算透明度（连续渐变，避免阶梯感）
    */
   private calculateOpacity(index: number): number {
     const distance = Math.abs(index - this.currentLineIndex);
     if (distance === 0) {
       return 1.0;
-    } else if (distance === 1) {
-      return this.isFullscreen ? 0.7 : 0.75;
-    } else if (distance === 2) {
-      return this.isFullscreen ? 0.5 : 0.55;
-    } else {
-      return this.isFullscreen ? 0.3 : 0.35;
     }
+    const minOpacity = this.isFullscreen ? 0.25 : 0.3;
+    const fadeRate = this.isFullscreen ? 0.16 : 0.15;
+    return Math.max(minOpacity, 1.0 - distance * fadeRate);
   }
 
   private isFillerLine(text: string): boolean {
@@ -188,8 +185,8 @@ export struct LyricView {
         .alignListItem(ListItemAlign.Center)
         .backgroundColor(Color.Transparent)
         .animation({
-          duration: 300,
-          curve: Curve.EaseOut
+          duration: 500,
+          curve: Curve.FastOutSlowIn
         })
       }
     }
