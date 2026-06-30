@@ -78,7 +78,7 @@ const options: audio.AudioRendererOptions = { streamInfo, rendererInfo };
 ## 参考文档
 - https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/using-audiorenderer-for-playback
 
-## Sonar 播放管线（playback/pipeline/）
+## HeartTone 播放管线（playback/pipeline/）
 - **AVPlayer-only**：`AudioRenderSink.openUrl(HTTP stream URL)` → prepare → seek(可选) → play；禁止并行 Fetch/磁盘缓存/fd。
 - **PipelineOrchestrator.replayAt**：首播、切网 migrate、error 恢复共用同一原语。
 - **切网 migrate**：`enterBuffering` → `replayAt(新 endpoint URL, frozenMs, wasPlaying)` → `exitBuffering`；等价于手动选曲 + 拖进度。

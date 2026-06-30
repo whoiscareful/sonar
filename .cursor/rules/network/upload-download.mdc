@@ -71,7 +71,7 @@ await task.start();
 - 部分上传场景仅支持 **应用沙箱路径**（如 `cacheDir` / `filesDir`），不能直接把 Picker 返回的 uri 当路径用，须先 copy 到沙箱。
 - 上传文件类型、HTTPS 限制以当前 SDK 文档为准（历史版本曾有 HTTP-only 上传限制，新项目以官方为准）。
 - 任务结束调用 `remove()` 释放；Ability 销毁时取消或 detach 监听。
-- 与 **Network Kit HTTP 流式** 二选一：音乐长流播放 Sonar 用 `HttpTransport.openStream`，非 `request.agent`。
+- 与 **Network Kit HTTP 流式** 二选一：音乐长流播放 HeartTone 用 `HttpTransport.openStream`，非 `request.agent`。
 
 ## 开发落地清单
 

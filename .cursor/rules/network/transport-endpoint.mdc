@@ -1,11 +1,11 @@
 ---
-description: Sonar 网络传输封装与 Endpoint 路由规范（项目内）
+description: HeartTone 网络传输封装与 Endpoint 路由规范（项目内）
 alwaysApply: false
 ---
 
 # 网络传输与 Endpoint 路由规范
 
-> HarmonyOS Network Kit 通用规范见 `network/overview.mdc` 及子规则；本文档为 Sonar 项目内强制约定。
+> HarmonyOS Network Kit 通用规范见 `network/overview.mdc` 及子规则；本文档为 HeartTone 项目内强制约定。
 
 ## 路由哲学
 
@@ -32,4 +32,4 @@ alwaysApply: false
 
 - Network Kit 总览：`network/overview.mdc`
 - 官方：[系统网络开发指南](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/system-network)
-- 代码：`sonar/src/main/ets/sonar/network/` 目录结构
+- 代码：`hearttone/src/main/ets/hearttone/network/` 目录结构

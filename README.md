@@ -73,12 +73,12 @@ HeartTone/
 ├─ AppScope/                         # App-level metadata and shared resources
 │  ├─ app.json5                      # bundleName, icon, label
 │  └─ resources/base/                # app icon (layered), app name
-└─ sonar/                            # Entry HAP module (name kept as internal identifier)
+└─ hearttone/                        # Entry HAP module
    ├─ src/main/
    │  ├─ ets/
-   │  │  ├─ sonarability/            # UIAbility entry
-   │  │  ├─ sonarbackupability/      # Backup extension
-   │  │  └─ sonar/
+   │  │  ├─ entryability/            # UIAbility entry
+   │  │  ├─ backupability/          # Backup extension
+   │  │  └─ hearttone/
    │  │     ├─ api/                  # Subsonic client and types
    │  │     ├─ auth/                 # Credential / session persistence
    │  │     ├─ cache/                # Song cache, cover cache, eviction, settings
@@ -195,12 +195,12 @@ HeartTone/
 ├─ AppScope/                         # 应用级元数据与共享资源
 │  ├─ app.json5                      # bundleName、图标、应用名
 │  └─ resources/base/                # 应用图标（分层）、应用名
-└─ sonar/                            # Entry HAP 模块（模块名 sonar 沿用为内部标识）
+└─ hearttone/                        # Entry HAP 模块
    ├─ src/main/
    │  ├─ ets/
-   │  │  ├─ sonarability/            # UIAbility 入口
-   │  │  ├─ sonarbackupability/      # 备份扩展能力
-   │  │  └─ sonar/
+   │  │  ├─ entryability/            # UIAbility 入口
+   │  │  ├─ backupability/          # 备份扩展能力
+   │  │  └─ hearttone/
    │  │     ├─ api/                  # Subsonic 客户端与类型
    │  │     ├─ auth/                 # 凭据 / 会话持久化
    │  │     ├─ cache/                # 歌曲缓存、封面缓存、淘汰策略、设置

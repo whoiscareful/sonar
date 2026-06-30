@@ -23,7 +23,7 @@ alwaysApply: false
 
 ## 开发落地清单
 - `new BottomTabBarStyle(icon, label).labelStyle(...).iconStyle(...)`；`TabBarIconStyle` 无 `size` 字段。
-- 设备 API &lt; 60100 时 Sonar 降级普通 `Tabs`（`FloatingTabBar.supportsHdsTabs()`）。
+- 设备 API &lt; 60100 时 HeartTone 降级普通 `Tabs`（`FloatingTabBar.supportsHdsTabs()`）。
 - `barFloatingStyle` 须用官方类型（`HdsTabsFloatingStyle` 等），禁止自建 interface。
 
 ## 常见误区

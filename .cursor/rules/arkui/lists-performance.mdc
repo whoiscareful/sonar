@@ -1,6 +1,6 @@
 ---
 description: ArkUI 列表渲染、LazyForEach 与组件复用性能规范
-globs: sonar/**/*.ets
+globs: hearttone/**/*.ets
 alwaysApply: false
 ---
 

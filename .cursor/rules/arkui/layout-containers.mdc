@@ -1,6 +1,6 @@
 ---
 description: ArkUI 布局容器选型、响应式与性能规范
-globs: sonar/**/*.ets
+globs: hearttone/**/*.ets
 alwaysApply: false
 ---
 
@@ -35,7 +35,7 @@ Row() {
 }.width('100%')
 ```
 
-## 响应式断点（与 Sonar Token 对齐）
+## 响应式断点（与 HeartTone Token 对齐）
 - 小屏：宽 &lt; 600 vp → `FLOATING_TAB_BAR_*_SMALL`
 - 中屏：600–840 vp → `_MEDIUM`
 - 大屏：≥ 840 vp → `_LARGE`

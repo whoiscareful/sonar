@@ -1,10 +1,10 @@
 ---
-description: Sonar 应用图标（分层桌面图标 + 启动页）配置与替换规范
+description: HeartTone 应用图标（分层桌面图标 + 启动页）配置与替换规范
 globs: AppScope/**,**/module.json5,AppScope/resources/**/media/**,**/media/layered_image.json,**/media/startIcon.png
 alwaysApply: false
 ---
 
-# Sonar 应用图标配置规范
+# HeartTone 应用图标配置规范
 
 ## 文档要点总览
 - 桌面/设置图标：`AppScope/app.json5` → `$media:layered_image`（前景 + 背景两层 PNG）。
@@ -18,10 +18,10 @@ alwaysApply: false
 | 位点 | 配置文件 | 资源 | 用途 |
 | --- | --- | --- | --- |
 | 应用级 | `AppScope/app.json5` → `icon` | `$media:layered_image` | 桌面、设置、应用列表 |
-| 启动页 | `sonar/src/main/module.json5` → `startWindowIcon` | `$media:startIcon` | 冷启动闪屏中央图标 |
+| 启动页 | `hearttone/src/main/module.json5` → `startWindowIcon` | `$media:startIcon` | 冷启动闪屏中央图标 |
 | 模块 Ability（可选） | `module.json5` → abilities[].`icon` | 任意 `$media:*` | 含 home skill 时覆盖 app 级 |
 
-## 当前 Sonar 策略（强制）
+## 当前 HeartTone 策略（强制）
 
 - **桌面图标**：不在 module 中配置 `icon`，统一走 `app.json5` 的 layered。
 - **启动页**：module 引用 `startIcon.png`。
@@ -35,7 +35,7 @@ AppScope/resources/base/media/
   background.png      # 背景层 1024×1024 PNG
   layered_image.json
 
-sonar/src/main/resources/base/media/
+hearttone/src/main/resources/base/media/
   startIcon.png       # 启动页图标
 ```
 
@@ -63,12 +63,12 @@ sonar/src/main/resources/base/media/
 }
 ```
 
-### `sonar/src/main/module.json5`（SonarAbility 片段）
+### `hearttone/src/main/module.json5`（HeartToneAbility 片段）
 
 ```json5
 {
   "abilities": [{
-    "name": "SonarAbility",
+    "name": "HeartToneAbility",
     "startWindowIcon": "$media:startIcon",
     "startWindowBackground": "$color:start_window_background",
     "skills": [{
@@ -99,7 +99,7 @@ sonar/src/main/resources/base/media/
 
 ### 启动页图标（Entry 模块）
 
-1. 右键 **sonar** 模块 → **New** → **Image Asset** → **Icon and start window icon**。
+1. 右键 **hearttone** 模块 → **New** → **Image Asset** → **Icon and start window icon**。
 2. 生成 `startIcon.png`；保持 `startWindowIcon: "$media:startIcon"`。
 
 ## 常见误区
@@ -117,7 +117,7 @@ sonar/src/main/resources/base/media/
 - 库页 Tab 仍用 `lib_icon_12`，与应用图标互不影响。
 - 替换品牌图后在真机检查裁切与深浅色。
 
-## 替换为 Sonar 品牌图标
+## 替换为 HeartTone 品牌图标
 
 1. 准备 1024×1024 前景、背景 PNG。
 2. 覆盖 `AppScope/resources/base/media/` 对应文件。

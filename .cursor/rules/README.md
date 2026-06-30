@@ -1,4 +1,4 @@
-# Sonar Cursor Rules 目录
+# HeartTone Cursor Rules 目录
 
 `.cursor/rules/` 下的 `.mdc` 文件由 Cursor 自动扫描加载；子目录（`arkui/`、`hds/`、`media/`、`app/`）用于主题归类。本 README 仅供人工浏览，**不会**被当作 rule 加载。
 
@@ -21,15 +21,15 @@
 
 | 文件 | description | globs | alwaysApply |
 | --- | --- | --- | --- |
-| `overview.mdc` | ArkUI 声明式开发总览与 HDS/ArkUI 组件选型索引 | `sonar/**/*.ets` | false |
-| `components-lifecycle.mdc` | 自定义组件、Builder 与生命周期 | `sonar/**/*.ets` | false |
+| `overview.mdc` | ArkUI 声明式开发总览与 HDS/ArkUI 组件选型索引 | `hearttone/**/*.ets` | false |
+| `components-lifecycle.mdc` | 自定义组件、Builder 与生命周期 | `hearttone/**/*.ets` | false |
 | `state-management.mdc` | 状态管理 V1/V2 选型、装饰器与性能 | — | **true** |
-| `layout-containers.mdc` | 布局容器选型、响应式与性能 | `sonar/**/*.ets` | false |
-| `navigation-routing.mdc` | Navigation/NavPathStack 路由（非 HDS） | `sonar/**/*.ets` | false |
-| `lists-performance.mdc` | 列表渲染、LazyForEach 与组件复用 | `sonar/**/*.ets` | false |
-| `interaction-dialogs.mdc` | 交互事件、手势竞争与弹层/Sheet | `sonar/**/*.ets` | false |
-| `theme-window-adaptation.mdc` | 深色模式、窗口安全区、软键盘与一多 | `sonar/**/*.ets` | false |
-| `accessibility.mdc` | 无障碍与适老化 | `sonar/**/*.ets` | false |
+| `layout-containers.mdc` | 布局容器选型、响应式与性能 | `hearttone/**/*.ets` | false |
+| `navigation-routing.mdc` | Navigation/NavPathStack 路由（非 HDS） | `hearttone/**/*.ets` | false |
+| `lists-performance.mdc` | 列表渲染、LazyForEach 与组件复用 | `hearttone/**/*.ets` | false |
+| `interaction-dialogs.mdc` | 交互事件、手势竞争与弹层/Sheet | `hearttone/**/*.ets` | false |
+| `theme-window-adaptation.mdc` | 深色模式、窗口安全区、软键盘与一多 | `hearttone/**/*.ets` | false |
+| `accessibility.mdc` | 无障碍与适老化 | `hearttone/**/*.ets` | false |
 | `animation.mdc` | ArkTS 动画开发规范 | — | **true** |
 
 ### hds/ — UI Design Kit（10）
@@ -42,7 +42,7 @@
 | `tabs-bar-floating.mdc` | 悬浮页签/miniBar 技术规范；展开宽度 UiTokens 三档 | — | **true** |
 | `tabs-bar-floating-pitfalls.mdc` | 悬浮底栏历史回归与反模式（归档） | `**/*FloatingTabBar*.ets`, `**/*Tab*.ets`, `**/Index.ets` | false |
 | `icon-symbol.mdc` | hdsDrawable 图标与 Symbol 注册 | `**/media/**`, `**/*Icon*.ets` | false |
-| `visual-effects.mdc` | 点光源、按压阴影与流光 | `sonar/**/*.ets` | false |
+| `visual-effects.mdc` | 点光源、按压阴影与流光 | `hearttone/**/*.ets` | false |
 | `list-card.mdc` | 列表横滑删除与卡片样式 | `**/*List*.ets`, `**/pages/**` | false |
 | `sidebar-interaction.mdc` | 侧边栏、即时操作、核心操作栏与多窗 | — | false |
 | `immersive-light-perception.mdc` | 沉浸光感材质 | — | **true** |
@@ -52,7 +52,7 @@
 | 文件 | description | globs | alwaysApply |
 | --- | --- | --- | --- |
 | `audiorenderer-playback.mdc` | AudioRenderer 音频播放 | — | **true** |
-| `avsession-media-center.mdc` | AVSession 系统媒体中心（Sonar） | — | **true** |
+| `avsession-media-center.mdc` | AVSession 系统媒体中心（HeartTone） | — | **true** |
 
 ### app/ — 应用级配置（1）
 
@@ -70,4 +70,4 @@
 
 1. Cursor Settings → Rules：应可见 **23** 条 `.mdc`（全部位于子目录，根目录仅 `README.md`）
 2. 新对话中 **7** 条 `alwaysApply: true` 规则应自动注入上下文
-3. 打开 `sonar/**/*.ets` 时，带 `globs` 的 arkui/hds 规则应可被关联
+3. 打开 `hearttone/**/*.ets` 时，带 `globs` 的 arkui/hds 规则应可被关联

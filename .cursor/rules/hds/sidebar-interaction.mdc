@@ -33,7 +33,7 @@ alwaysApply: false
 ## 应用内多窗
 - 单应用 **多窗口入口**：自定义图标、背板颜色与大小，多窗并行。
 - 与系统「多窗模式」配合时在 `module.json5` 声明支持（ArkUI 多窗适配文档）。
-- 勿与 FloatingTabBar miniBar、独立播放条等重复占底部交互区（Sonar 见 `hds/tabs-bar-floating.mdc`）。
+- 勿与 FloatingTabBar miniBar、独立播放条等重复占底部交互区（HeartTone 见 `hds/tabs-bar-floating.mdc`）。
 
 ## 开发落地清单
 - 侧边栏显隐与 `NavPathStack` 深度协调：抽屉打开时返回键先关抽屉再 pop 页面。

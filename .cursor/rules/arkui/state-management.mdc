@@ -58,7 +58,7 @@ struct NowPlayingRow {
 - `@Prop` 每次父更新深拷贝 — 大列表项用 `@ObjectLink` 或 V2 `@Param` 引用类型 + `@Trace`。
 - `@ObjectLink` 不能 `this.task = new Task()`，应改属性 `this.task.done = true`。
 
-## 应用级状态（Sonar 实践）
+## 应用级状态（HeartTone 实践）
 - 播放态：`AppStorage` 键 `playback` + `PlaybackSnapshot` 单源（见 `media/avsession-media-center.mdc`）。
 - Tab 索引：`@StorageLink('rootTabIndex')` 与 HDS 页签联动。
 

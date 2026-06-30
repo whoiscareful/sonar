@@ -1,6 +1,6 @@
 ---
 description: ArkUI 深色模式、窗口安全区、软键盘与一多适配规范
-globs: sonar/**/*.ets
+globs: hearttone/**/*.ets
 alwaysApply: false
 ---
 
@@ -35,7 +35,7 @@ Column() { /* 内容 */ }
 ```
 
 - 播放/阅读全沉浸：扩展安全区 + 自绘顶栏时注意触控命中。
-- Sonar：`@StorageProp('bottomRectHeight')` 与 HDS `barBottomMargin` 协调，避免内容被悬浮 Tab 遮挡。
+- HeartTone：`@StorageProp('bottomRectHeight')` 与 HDS `barBottomMargin` 协调，避免内容被悬浮 Tab 遮挡。
 
 ## 软键盘
 

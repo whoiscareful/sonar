@@ -1,6 +1,6 @@
 ---
 description: ArkUI Navigation/NavPathStack 路由与转场规范（非 HDS）
-globs: sonar/**/*.ets
+globs: hearttone/**/*.ets
 alwaysApply: false
 ---
 
@@ -51,7 +51,7 @@ struct Index {
 ## HDS vs ArkUI 选型
 - 要 HarmonyOS Design 标题栏模糊、菜单气泡、PC 分栏 → `HdsNavigation`。
 - 元服务/轻量栈、完全自定义标题栏 → `Navigation`。
-- Sonar 根 Tab 用 `HdsTabs` + 页内 `Navigation` 嵌套时，明确哪一层持有 `NavPathStack`。
+- HeartTone 根 Tab 用 `HdsTabs` + 页内 `Navigation` 嵌套时，明确哪一层持有 `NavPathStack`。
 
 ## 常见误区
 - 在 `NavDestination` 根上设 `zIndex` 导致 push/pop 动画异常。

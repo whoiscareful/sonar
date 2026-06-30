@@ -83,7 +83,7 @@ httpRequest.off('dataEnd');
 httpRequest.destroy();
 ```
 
-Sonar 播放：`AVPlayer` + Subsonic stream HTTP URL（`PipelineOrchestrator`）；下一首预加载 standby 或 `StreamWarmupPreloadStrategy` 经 `HttpTransport.openStream`（禁止业务层直接 `createHttp()`）。
+HeartTone 播放：`AVPlayer` + Subsonic stream HTTP URL（`PipelineOrchestrator`）；下一首预加载 standby 或 `StreamWarmupPreloadStrategy` 经 `HttpTransport.openStream`（禁止业务层直接 `createHttp()`）。
 
 ## WebDAV（API 23+）
 

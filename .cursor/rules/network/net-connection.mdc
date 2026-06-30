@@ -30,7 +30,7 @@ import { connection } from '@kit.NetworkKit';
 // 是否有默认网络
 const hasNet = connection.hasDefaultNetSync();
 
-// 默认网络句柄与能力（Sonar：NetworkStatus.readCapabilities）
+// 默认网络句柄与能力（HeartTone：NetworkStatus.readCapabilities）
 const netHandle = connection.getDefaultNetSync();
 if (netHandle.netId === 0) {
   // 无默认网络，异常态
@@ -107,7 +107,7 @@ const addresses = await connection.getAddressesByName('example.com');
 
 - 大部分 `connection` API 提供 **callback** 与 **Promise** 两种形式；项目内优先 Promise/async 以保持错误链一致。
 
-## Sonar 实践
+## HeartTone 实践
 
 - `NetworkStatus`：`getNetworkType()` / `isOnWifi()` / `isMetered()` 基于 `getDefaultNetSync` + `getNetCapabilitiesSync`。
 - WiFi SSID 来自 ConnectivityKit `wifiManager`（非 connection 模块），与 Bearer 判断组合使用。

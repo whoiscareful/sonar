@@ -1,6 +1,6 @@
 ---
 description: ArkUI 声明式开发总览与 HDS/ArkUI 组件选型索引
-globs: sonar/**/*.ets
+globs: hearttone/**/*.ets
 alwaysApply: false
 ---
 

@@ -1,12 +1,12 @@
 ---
-description: Sonar 悬浮底栏/miniBar 历史回归与反模式（曾犯错误归档）
+description: HeartTone 悬浮底栏/miniBar 历史回归与反模式（曾犯错误归档）
 globs: **/*FloatingTabBar*.ets,**/*Tab*.ets,**/Index.ets
 alwaysApply: false
 ---
 
 # 悬浮底栏曾犯错误（归档）
 
-技术规范与正确做法见 `hds/tabs-bar-floating.mdc`。本节仅记录 Sonar 项目已踩坑，**禁止重复**。
+技术规范与正确做法见 `hds/tabs-bar-floating.mdc`。本节仅记录 HeartTone 项目已踩坑，**禁止重复**。
 
 ## 核心根因（一句话）
 

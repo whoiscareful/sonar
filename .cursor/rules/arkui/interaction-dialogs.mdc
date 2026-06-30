@@ -1,6 +1,6 @@
 ---
 description: ArkUI 交互事件、手势竞争与弹层/Sheet 选型规范
-globs: sonar/**/*.ets
+globs: hearttone/**/*.ets
 alwaysApply: false
 ---
 

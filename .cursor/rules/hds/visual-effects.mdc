@@ -1,6 +1,6 @@
 ---
 description: HDS 点光源、按压阴影与流光视效（hdsEffect）开发规范
-globs: sonar/**/*.ets
+globs: hearttone/**/*.ets
 alwaysApply: false
 ---
 

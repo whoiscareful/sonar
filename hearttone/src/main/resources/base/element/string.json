@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "心音 音乐客户端"
+    },
+    {
+      "name": "HeartToneAbility_desc",
+      "value": "自托管 Subsonic / Navidrome 音乐播放"
+    },
+    {
+      "name": "permission_keep_background_running_reason",
+      "value": "允许 心音 在后台继续播放音乐"
+    },
+    {
+      "name": "playback_notification_title",
+      "value": "心音 正在播放"
+    },
+    {
+      "name": "playback_notification_pause_hint",
+      "value": "已暂停播放"
+    }
+  ]
+}

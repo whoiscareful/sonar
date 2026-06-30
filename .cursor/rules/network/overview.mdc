@@ -40,11 +40,11 @@ alwaysApply: false
 | `ohos.permission.INTERNET` | normal | 所有出站网络（HTTP/WebSocket/Socket） |
 | `ohos.permission.GET_NETWORK_INFO` | normal | 查询默认网络、能力、DNS、`NetConnection` 订阅 |
 
-WiFi SSID 等需额外 `ohos.permission.GET_WIFI_INFO`（ConnectivityKit，见 Sonar `NetworkStatus`）。
+WiFi SSID 等需额外 `ohos.permission.GET_WIFI_INFO`（ConnectivityKit，见 HeartTone `NetworkStatus`）。
 
 ## 工程实践（通用）
 
-1. **集中封装**：业务层不 scattered 调用 `http.createHttp()`；超时、重试、取消、fallback 走统一 Transport（Sonar：`HttpTransport`，见 `network/transport-endpoint.mdc`）。
+1. **集中封装**：业务层不 scattered 调用 `http.createHttp()`；超时、重试、取消、fallback 走统一 Transport（HeartTone：`HttpTransport`，见 `network/transport-endpoint.mdc`）。
 2. **显式超时**：`connectTimeout` + `readTimeout`（默认 60000ms）；长流适当增大 `readTimeout`。
 3. **一请求一实例**：每个 `HttpRequest` 对应一个任务，**不可复用**；完毕 `destroy()`，并 `off()` 已订阅事件。
 4. **离线短路**：`connection.hasDefaultNetSync()` / `NET_CAPABILITY_VALIDATED` 失败时勿盲目发请求等超时。
@@ -60,7 +60,7 @@ WiFi SSID 等需额外 `ohos.permission.GET_WIFI_INFO`（ConnectivityKit，见 S
 | HTTP 请求 / 流式 / 证书 | `network/http-request.mdc` | [使用 HTTP 访问网络](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/http-request) |
 | WebSocket / Socket | `network/websocket-socket.mdc` | [WebSocket 连接](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/websocket-connection) / [Socket 连接](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/socket-connection) |
 | 后台上传下载 | `network/upload-download.mdc` | [上传下载](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/upload-request) |
-| Sonar Endpoint 路由 | `network/transport-endpoint.mdc` | 项目内规范 |
+| HeartTone Endpoint 路由 | `network/transport-endpoint.mdc` | 项目内规范 |
 
 ## 常见误区
 

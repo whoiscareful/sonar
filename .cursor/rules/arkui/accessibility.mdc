@@ -1,6 +1,6 @@
 ---
 description: ArkUI 无障碍与适老化开发规范
-globs: sonar/**/*.ets
+globs: hearttone/**/*.ets
 alwaysApply: false
 ---
 
@@ -34,7 +34,7 @@ Button({ type: ButtonType.Circle }) {
 - 列表行高、页签 label 在放大后仍不重叠 — 用 `flexShrink`、断点换行。
 - 避免仅颜色区分状态（加图标或文案）。
 
-## Sonar 相关
+## HeartTone 相关
 - 根 Tab：`FloatingTabBar` 中 `a11yLabel` 已用于页签；miniBar 操作按钮须有 accessibilityText。
 - 封面图 decorative 时可 `.accessibilityGroup(true)` 由父级朗读曲名。
 

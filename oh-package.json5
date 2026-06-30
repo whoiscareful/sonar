@@ -1,6 +1,6 @@
 {
   "modelVersion": "6.1.1",
-  "description": "HeartTone（心音）— HarmonyOS music client for self-hosted Subsonic / Navidrome servers. Forked from Sonar by imba97, maintained by whoiscareful.",
+  "description": "HeartTone（心音）— HarmonyOS music client for self-hosted Subsonic / Navidrome servers. Forked from HeartTone by imba97, maintained by whoiscareful.",
   "dependencies": {
   },
   "devDependencies": {

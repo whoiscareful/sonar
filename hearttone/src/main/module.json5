@@ -1,0 +1,85 @@
+{
+  "module": {
+    "name": "hearttone",
+    "type": "entry",
+    "description": "$string:module_desc",
+    "mainElement": "HeartToneAbility",
+    "deviceTypes": [
+      "phone",
+      "tablet",
+      "2in1"
+    ],
+    "deliveryWithInstall": true,
+    "installationFree": false,
+    "pages": "$profile:main_pages",
+    "requestPermissions": [
+      {
+        "name": "ohos.permission.INTERNET"
+      },
+      {
+        "name": "ohos.permission.GET_NETWORK_INFO"
+      },
+      {
+        "name": "ohos.permission.GET_WIFI_INFO"
+      },
+      {
+        "name": "ohos.permission.KEEP_BACKGROUND_RUNNING",
+        "reason": "$string:permission_keep_background_running_reason",
+        "usedScene": {
+          "abilities": [
+            "HeartToneAbility"
+          ],
+          "when": "inuse"
+        }
+      }
+    ],
+    "metadata": [
+      {
+        "name": "NetworkSecurityConfig",
+        "resource": "$profile:network_security_config"
+      }
+    ],
+    "abilities": [
+      {
+        "name": "HeartToneAbility",
+        "srcEntry": "./ets/entryability/HeartToneAbility.ets",
+        "description": "$string:HeartToneAbility_desc",
+        "startWindowIcon": "$media:startIcon",
+        "startWindowBackground": "$color:start_window_background",
+        "exported": true,
+        "backgroundModes": [
+          "audioPlayback"
+        ],
+        "supportWindowMode": [
+          "fullscreen",
+          "split",
+          "floating"
+        ],
+        "skills": [
+          {
+            "entities": [
+              "entity.system.home"
+            ],
+            "actions": [
+              "ohos.want.action.home"
+            ]
+          }
+        ]
+      }
+    ],
+    "extensionAbilities": [
+      {
+        "name": "HeartToneBackupAbility",
+        "srcEntry": "./ets/backupability/HeartToneBackupAbility.ets",
+        "type": "backup",
+        "exported": false,
+        "metadata": [
+          {
+            "name": "ohos.extension.backup",
+            "resource": "$profile:backup_config"
+          }
+        ],
+      }
+    ]
+  }
+}
