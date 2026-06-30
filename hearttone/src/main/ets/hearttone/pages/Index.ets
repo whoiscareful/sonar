@@ -32,6 +32,7 @@ struct Index {
   @StorageLink('authPhase') authPhase: string = 'booting';
   @StorageLink('rootTabIndex') rootTabIndex: number = 0;
   @State private lastBackPressTime: number = 0;
+  @State private showSplash: boolean = true;
 
   async aboutToAppear(): Promise<void> {
     ScreenProfileStore.ensureInitialized();
@@ -45,6 +46,7 @@ struct Index {
     await MusicTabSettingsStore.getInstance().init(context);
     await RecentPlayHistoryStore.getInstance().init(context);
     await PlaybackService.initialize(context);
+    this.showSplash = false;
   }
 
   private isOuterUiActive(): boolean {
@@ -181,10 +183,23 @@ struct Index {
   }
 
   build() {
-    if (this.outerScreenPreview || this.screenProfile === 'outer') {
-      this.buildOuterScreenApp()
-    } else {
-      this.buildStandardApp()
+    Stack() {
+      if (this.outerScreenPreview || this.screenProfile === 'outer') {
+        this.buildOuterScreenApp()
+      } else {
+        this.buildStandardApp()
+      }
+
+      if (this.showSplash) {
+        Image($r('app.media.splash'))
+          .width('100%')
+          .height('100%')
+          .objectFit(ImageFit.Cover)
+          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+          .transition(TransitionEffect.OPACITY.animation({ duration: 400 }))
+      }
     }
+    .width('100%')
+    .height('100%')
   }
 }
