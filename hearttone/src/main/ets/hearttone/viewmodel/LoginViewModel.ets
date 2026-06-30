@@ -8,8 +8,12 @@ import { ConfigCodecError, HeartToneConfigCodec } from '../settings/HeartToneCon
 
 @Observed
 export class LoginViewModel {
-  serverUrl: string = '';
-  localServerUrl: string = '';
+  serverProtocol: string = 'https';
+  serverHost: string = '';
+  serverPort: string = '';
+  localServerProtocol: string = 'http';
+  localServerHost: string = '';
+  localServerPort: string = '';
   username: string = '';
   password: string = '';
   importBase64: string = '';
@@ -17,6 +21,25 @@ export class LoginViewModel {
   isLoading: boolean = false;
   errorMessage: string = '';
   private rememberedLoaded: boolean = false;
+
+  private static buildUrl(protocol: string, host: string, port: string): string {
+    const trimmedHost: string = host.trim();
+    const trimmedPort: string = port.trim();
+    const portSuffix: string = trimmedPort.length > 0 ? `:${trimmedPort}` : '';
+    return `${protocol}://${trimmedHost}${portSuffix}`;
+  }
+
+  private static parseUrl(url: string): { protocol: string; host: string; port: string } {
+    const matched: RegExpMatchArray | null = url.trim().match(/^(https?):\/\/([^/:]+)(?::(\d+))?(.*)$/i);
+    if (matched !== null) {
+      return {
+        protocol: matched[1].toLowerCase(),
+        host: matched[2] + (matched[4] ?? ''),
+        port: matched[3] ?? ''
+      };
+    }
+    return { protocol: 'https', host: url, port: '' };
+  }
 
   private static describeError(err: SubsonicApiError): string {
     switch (err.code) {
@@ -42,11 +65,17 @@ export class LoginViewModel {
       return;
     }
     const info = await AuthStore.getInstance().getRememberedLoginInfo();
-    if (this.serverUrl.length === 0) {
-      this.serverUrl = info.remoteServerUrl;
+    if (this.serverHost.trim().length === 0) {
+      const remoteParsed = LoginViewModel.parseUrl(info.remoteServerUrl);
+      this.serverProtocol = remoteParsed.protocol;
+      this.serverHost = remoteParsed.host;
+      this.serverPort = remoteParsed.port;
     }
-    if (this.localServerUrl.length === 0) {
-      this.localServerUrl = info.localServerUrl;
+    if (this.localServerHost.trim().length === 0 && info.localServerUrl.trim().length > 0) {
+      const localParsed = LoginViewModel.parseUrl(info.localServerUrl);
+      this.localServerProtocol = localParsed.protocol;
+      this.localServerHost = localParsed.host;
+      this.localServerPort = localParsed.port;
     }
     if (this.username.length === 0) {
       this.username = info.username;
@@ -61,12 +90,12 @@ export class LoginViewModel {
     if (this.isLoading) {
       return;
     }
-    const serverUrlInput: string = this.serverUrl.trim();
-    const localServerUrlInput: string = this.localServerUrl.trim();
+    const serverHostTrimmed: string = this.serverHost.trim();
+    const localHostTrimmed: string = this.localServerHost.trim();
     const username: string = this.username.trim();
     const password: string = this.password;
 
-    if (serverUrlInput.length === 0) {
+    if (serverHostTrimmed.length === 0) {
       this.errorMessage = '请输入服务器地址';
       return;
     }
@@ -82,6 +111,9 @@ export class LoginViewModel {
     this.isLoading = true;
     this.errorMessage = '';
     try {
+      const serverUrlInput: string = LoginViewModel.buildUrl(this.serverProtocol, this.serverHost, this.serverPort);
+      const localServerUrlInput: string = localHostTrimmed.length > 0 ?
+        LoginViewModel.buildUrl(this.localServerProtocol, this.localServerHost, this.localServerPort) : '';
       const serverUrl: string = SubsonicUrlUtil.normalizeServerUrl(serverUrlInput);
       const localServerUrl: string | undefined = localServerUrlInput.length > 0 ?
         SubsonicUrlUtil.normalizeServerUrl(localServerUrlInput) : undefined;
@@ -123,8 +155,14 @@ export class LoginViewModel {
     this.errorMessage = '';
     try {
       const payload = await HeartToneConfigCodec.importConfig(base64Input, this.importPassword);
-      this.serverUrl = payload.remoteServerUrl;
-      this.localServerUrl = payload.localServerUrl;
+      const remoteParsed = LoginViewModel.parseUrl(payload.remoteServerUrl);
+      this.serverProtocol = remoteParsed.protocol;
+      this.serverHost = remoteParsed.host;
+      this.serverPort = remoteParsed.port;
+      const localParsed = LoginViewModel.parseUrl(payload.localServerUrl);
+      this.localServerProtocol = localParsed.protocol;
+      this.localServerHost = localParsed.host;
+      this.localServerPort = localParsed.port;
       this.username = payload.username;
       this.password = payload.password;
       onTabSwitch();

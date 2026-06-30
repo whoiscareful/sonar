@@ -7,6 +7,7 @@ import { PrimaryButton } from '../components/buttons/PrimaryButton';
 import { CardContainer } from '../components/layout/CardContainer';
 import { HeartTonePageLayout } from '../components/layout/HeartTonePageLayout';
 import { ImmersiveMaterialHelper } from '../ui/material/ImmersiveMaterialHelper';
+import { GlassSurfaceHelper } from '../ui/material/GlassSurfaceHelper';
 import {
   HeartTonePageLayoutOptions,
   HeartTonePageRole,
@@ -49,25 +50,102 @@ export struct LoginPage {
     this.vm.errorMessage = '';
   }
 
+  @Builder
+  compositeUrlInput(
+    protocol: string,
+    host: string,
+    port: string,
+    hostPlaceholder: string,
+    onProtocolToggle: () => void,
+    onHostChange: (v: string) => void,
+    onPortChange: (v: string) => void
+  ) {
+    Row() {
+      Text(`${protocol}://`)
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(UiTokens.COLOR_PRIMARY)
+        .padding({ left: 14, right: 6 })
+        .height('100%')
+        .textAlign(TextAlign.Center)
+        .onClick(() => {
+          onProtocolToggle();
+        })
+
+      TextInput({ text: host, placeholder: hostPlaceholder })
+        .layoutWeight(1)
+        .height('100%')
+        .backgroundColor(Color.Transparent)
+        .borderRadius(0)
+        .padding({ left: 0, right: 6 })
+        .fontColor(UiTokens.COLOR_TEXT_PRIMARY)
+        .placeholderColor(UiTokens.COLOR_TEXT_SECONDARY)
+        .type(InputType.Normal)
+        .caretColor(UiTokens.COLOR_PRIMARY)
+        .onChange((value: string) => {
+          onHostChange(value);
+        })
+
+      Text(':')
+        .fontSize(14)
+        .fontColor(UiTokens.COLOR_TEXT_SECONDARY)
+
+      TextInput({ text: port, placeholder: '端口' })
+        .width(72)
+        .height('100%')
+        .backgroundColor(Color.Transparent)
+        .borderRadius(0)
+        .padding({ left: 6, right: 14 })
+        .fontColor(UiTokens.COLOR_TEXT_PRIMARY)
+        .placeholderColor(UiTokens.COLOR_TEXT_SECONDARY)
+        .type(InputType.Number)
+        .caretColor(UiTokens.COLOR_PRIMARY)
+        .onChange((value: string) => {
+          onPortChange(value);
+        })
+    }
+    .width('100%')
+    .height(46)
+    .borderRadius(12)
+    .backgroundBlurStyle(GlassSurfaceHelper.BLUR_STYLE, GlassSurfaceHelper.BLUR_OPTIONS)
+    .backgroundColor(UiTokens.COLOR_GLASS_BAR_BG)
+    .border({ width: 1, color: UiTokens.COLOR_GLASS_BAR_BORDER })
+    .margin({ bottom: 10 })
+  }
+
   @LocalBuilder
   serverTabContent() {
-    AppTextInput({
-      text: this.vm.serverUrl,
-      placeholder: '服务器地址 (例: https://navidrome.example.com)',
-      onValueChange: (v: string) => {
-        this.vm.serverUrl = v;
+    this.compositeUrlInput(
+      this.vm.serverProtocol,
+      this.vm.serverHost,
+      this.vm.serverPort,
+      'navidrome.example.com',
+      () => {
+        this.vm.serverProtocol = this.vm.serverProtocol === 'https' ? 'http' : 'https';
+      },
+      (v: string) => {
+        this.vm.serverHost = v;
+      },
+      (v: string) => {
+        this.vm.serverPort = v;
       }
-    })
-      .margin({ bottom: 10 })
+    )
 
-    AppTextInput({
-      text: this.vm.localServerUrl,
-      placeholder: '本地 URL (可选，例: http://192.168.1.10:4533)',
-      onValueChange: (v: string) => {
-        this.vm.localServerUrl = v;
+    this.compositeUrlInput(
+      this.vm.localServerProtocol,
+      this.vm.localServerHost,
+      this.vm.localServerPort,
+      '192.168.1.10 (可选)',
+      () => {
+        this.vm.localServerProtocol = this.vm.localServerProtocol === 'https' ? 'http' : 'https';
+      },
+      (v: string) => {
+        this.vm.localServerHost = v;
+      },
+      (v: string) => {
+        this.vm.localServerPort = v;
       }
-    })
-      .margin({ bottom: 10 })
+    )
 
     AppTextInput({
       text: this.vm.username,
