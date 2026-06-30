@@ -52,7 +52,7 @@ Open this folder in DevEco Studio and let dependencies sync.
 
 #### 3) Configure Signing
 
-The repository uses placeholder values in `build-profile.json5`. Replace the following fields with your local signing files and passwords:
+The repository's `build-profile.json5` contains the maintainer's local signing configuration (machine-specific paths and encrypted passwords). To build on your own machine, replace the following fields with your own signing materials:
 
 - `certpath`
 - `profile`
@@ -97,6 +97,7 @@ HeartTone/
    │  │     └─ viewmodel/            # View models (Login, Music, Library, AlbumDetail, Lyric)
    │  ├─ resources/                  # Strings, colors, media, profiles
    │  └─ module.json5                # Module config, abilities, permissions
+   ├─ hvigorfile.ts
    ├─ oh-package.json5
    └─ build-profile.json5
 ```
@@ -174,7 +175,7 @@ HeartTone（心音）是一款 HarmonyOS 音乐客户端，兼容 SonicAPI / Sub
 
 #### 3) 配置签名
 
-仓库中 `build-profile.json5` 使用占位值，请将以下字段替换为你本地的签名文件和密码：
+仓库中 `build-profile.json5` 包含维护者的本地签名配置（机器相关路径与加密密码）。要在自己的机器上构建，请将以下字段替换为你本地的签名材料和密码：
 
 - `certpath`
 - `profile`
@@ -219,6 +220,7 @@ HeartTone/
    │  │     └─ viewmodel/            # 视图模型（登录、音乐、媒体库、专辑详情、歌词）
    │  ├─ resources/                  # 字符串、颜色、媒体、profile
    │  └─ module.json5                # 模块配置、Ability、权限
+   ├─ hvigorfile.ts
    ├─ oh-package.json5
    └─ build-profile.json5
 ```
