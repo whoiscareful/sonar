@@ -120,6 +120,7 @@ export struct NowPlayingPage {
       return;
     }
     void PlaybackService.toggle();
+    this.scheduleHideControls();
   }
 
   private onPreviousTap(): void {
@@ -128,6 +129,7 @@ export struct NowPlayingPage {
       return;
     }
     void PlaybackService.playPrevious();
+    this.scheduleHideControls();
   }
 
   private onNextTap(): void {
@@ -136,15 +138,18 @@ export struct NowPlayingPage {
       return;
     }
     void PlaybackService.playNext();
+    this.scheduleHideControls();
   }
 
   private onModeTap(): void {
     const newMode = PlaybackService.togglePlaybackMode();
     ToastUtil.show(this, this.getModeText(newMode));
+    this.scheduleHideControls();
   }
 
   private onQueueTap(): void {
     PlaylistSheetOpener.requestOpen();
+    this.scheduleHideControls();
   }
 
   private onLyricLineClick(lineIndex: number, timeMs: number): void {
@@ -154,6 +159,7 @@ export struct NowPlayingPage {
     }
     void PlaybackService.seekTo(timeMs);
     ToastUtil.show(this, `跳转到 ${this.formatTime(timeMs)}`);
+    this.scheduleHideControls();
   }
 
   private onOffsetIncrease(): void {
@@ -226,7 +232,14 @@ export struct NowPlayingPage {
   }
 
   private fullscreenLyricHeight(): number {
-    return this.containerHeight - this.topInset - this.bottomInset - 140;
+    if (!this.showControls) {
+      return this.containerHeight - this.topInset - this.bottomInset;
+    }
+    let reserved = 280; // track info(~100) + blank(10) + progress bar(28) + controls(~138) + margin
+    if (this.showLyricAdjust && this.lyricVm.hasLyrics()) {
+      reserved += 70; // lyric adjust panel(56) + space(10) + margin
+    }
+    return Math.max(120, this.containerHeight - this.topInset - this.bottomInset - reserved);
   }
 
   private trackTitle(): string {
@@ -535,7 +548,7 @@ export struct NowPlayingPage {
 
   /**
    * 全屏歌词模式布局
-   * 进入后延迟几秒自动隐藏控制按钮，上划屏幕重新显示
+   * 进入后延迟几秒自动隐藏控制按钮，点击屏幕重新显示
    */
   @Builder
   private buildFullscreenLyricMode() {
@@ -545,16 +558,16 @@ export struct NowPlayingPage {
           .width('100%')
           .height(this.topInset)
 
-        // 歌曲信息（固定在顶部）
-        Column() {
-          this.buildTrackInfo(true)
+        // 歌曲信息（仅在控制按钮可见时显示）
+        if (this.showControls) {
+          Column() {
+            this.buildTrackInfo(true)
+          }
+          .width('100%')
+          .backgroundColor(UiTokens.COLOR_PAGE_BG)
         }
-        .width('100%')
-        .backgroundColor(UiTokens.COLOR_PAGE_BG)
-        .opacity(this.showControls ? 1 : 0)
-        .animation({ duration: 300, curve: Curve.EaseInOut })
 
-        // 全屏歌词区域
+        // 全屏歌词区域（控制按钮隐藏时自动扩展填充）
         LyricView({
           lines: this.lyricVm.lines,
           currentLineIndex: this.lyricVm.currentLineIndex,
@@ -574,26 +587,24 @@ export struct NowPlayingPage {
         })
           .width('100%')
 
-        Blank()
-          .height(10)
+        if (this.showControls) {
+          Blank()
+            .height(10)
 
-        // 播放进度条
-        Column() {
-          OuterScreenProgressBar({
-            barWidth: this.containerWidth * 0.88
-          })
-        }
-        .width(this.containerWidth * 0.88)
-        .padding({ left: 8, right: 8 })
-        .opacity(this.showControls ? 1 : 0)
-        .animation({ duration: 300, curve: Curve.EaseInOut })
+          // 播放进度条
+          Column() {
+            OuterScreenProgressBar({
+              barWidth: this.containerWidth * 0.88
+            })
+          }
+          .width(this.containerWidth * 0.88)
+          .padding({ left: 8, right: 8 })
 
-        // 播放控制按钮
-        Column() {
-          this.buildPlayControls()
+          // 播放控制按钮
+          Column() {
+            this.buildPlayControls()
+          }
         }
-        .opacity(this.showControls ? 1 : 0)
-        .animation({ duration: 300, curve: Curve.EaseInOut })
 
         Column()
           .width('100%')
@@ -602,17 +613,14 @@ export struct NowPlayingPage {
       .width('100%')
       .height('100%')
 
-      // 控制按钮隐藏时，覆盖透明手势层，上划显示控制按钮
+      // 控制按钮隐藏时，覆盖透明点击层，点击屏幕重新显示
       if (!this.showControls) {
         Column()
           .width('100%')
           .height('100%')
-          .gesture(
-            PanGesture({ fingers: 1, direction: PanDirection.Up, distance: 10 })
-              .onActionStart(() => {
-                this.showControlsTemporarily();
-              })
-          )
+          .onClick(() => {
+            this.showControlsTemporarily();
+          })
       }
     }
     .width('100%')
