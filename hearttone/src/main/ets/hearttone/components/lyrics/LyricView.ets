@@ -55,7 +55,7 @@ export struct LyricView {
       return;
     }
     this.lastScrolledIndex = this.currentLineIndex;
-    this.scroller.scrollToIndex(this.currentLineIndex, false, ScrollAlign.CENTER, { duration: 600 });
+    this.scroller.scrollToIndex(this.currentLineIndex, true, ScrollAlign.CENTER);
   }
 
   /**
