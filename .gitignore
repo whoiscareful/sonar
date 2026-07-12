@@ -35,3 +35,6 @@ Thumbs.db
 
 # AI
 .qoder
+
+# DevEco Studio AI Assistant
+.codegenie/
