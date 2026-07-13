@@ -1,7 +1,5 @@
 export const hearttone_CONFIG_VERSION: number = 1;
 
-export const DEFAULT_CONFIG_PASSWORD: string = 'hearttone';
-
 export interface HeartToneConfigPayload {
   v: number;
   remoteServerUrl: string;

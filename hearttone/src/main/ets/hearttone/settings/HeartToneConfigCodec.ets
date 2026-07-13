@@ -2,7 +2,6 @@ import { util } from '@kit.ArkTS';
 import { RememberedLoginInfo } from '../auth/AuthStore';
 import { ConfigCryptoUtil, ConfigEncryptedBlob } from '../crypto/ConfigCryptoUtil';
 import {
-  DEFAULT_CONFIG_PASSWORD,
   hearttone_CONFIG_VERSION,
   HeartToneConfigEnvelope,
   HeartToneConfigPayload
@@ -18,7 +17,10 @@ export class ConfigCodecError extends Error {
 export class HeartToneConfigCodec {
   static resolvePassword(input?: string): string {
     const trimmed = (input ?? '').trim();
-    return trimmed.length > 0 ? trimmed : DEFAULT_CONFIG_PASSWORD;
+    if (trimmed.length === 0) {
+      throw new ConfigCodecError('配置密码不能为空');
+    }
+    return trimmed;
   }
 
   static async exportConfig(info: RememberedLoginInfo, password?: string): Promise<string> {

@@ -3,6 +3,10 @@ import { SubsonicClient } from '../main/ets/hearttone/api/SubsonicClient';
 import { SubsonicUrlUtil } from '../main/ets/hearttone/network/api/SubsonicUrlUtil';
 import { SubsonicApiError } from '../main/ets/hearttone/api/SubsonicTypes';
 import { AuthStore, SavedAuth } from '../main/ets/hearttone/auth/AuthStore';
+import {
+  ConfigCodecError,
+  HeartToneConfigCodec
+} from '../main/ets/hearttone/settings/HeartToneConfigCodec';
 
 export default function localUnitTest() {
   describe('localUnitTest', () => {
@@ -66,6 +70,18 @@ export default function localUnitTest() {
       const remoteUrl = AuthStore.resolveEndpointUrl(auth, 'remote');
       expect(localUrl).assertEqual('http://192.168.1.10:4533');
       expect(remoteUrl).assertEqual('https://remote.example.com');
+    });
+
+    it('resolveConfigPassword_requiresExplicitPassword', 0, () => {
+      expect(HeartToneConfigCodec.resolvePassword('  strong-password  ')).assertEqual('strong-password');
+
+      let gotError = false;
+      try {
+        HeartToneConfigCodec.resolvePassword('');
+      } catch (err) {
+        gotError = err instanceof ConfigCodecError;
+      }
+      expect(gotError).assertTrue();
     });
   });
 }

@@ -1,0 +1,16 @@
+#!/bin/sh
+set -eu
+
+repo_root="$(git rev-parse --show-toplevel)"
+config="$repo_root/gitleaks.toml"
+
+if command -v gitleaks >/dev/null 2>&1; then
+  scanner="gitleaks"
+elif [ -x "$repo_root/.git/tools/gitleaks/gitleaks.exe" ]; then
+  scanner="$repo_root/.git/tools/gitleaks/gitleaks.exe"
+else
+  echo "Gitleaks is required. Install it before committing." >&2
+  exit 1
+fi
+
+"$scanner" git "$repo_root" --staged --config "$config" --no-banner --redact=100

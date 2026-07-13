@@ -1,0 +1,12 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated build and dependency directories"
+paths = ['''(^|/)(?:build|\.hvigor|oh_modules|node_modules)(/|$)''']
+
+[[rules]]
+id = "harmonyos-signing-material"
+description = "HarmonyOS signing material must not be committed"
+regex = '''(?i)"(?:certpath|profile|storeFile|keyPassword|storePassword)"\s*:\s*"[^"\s]+"'''
+path = '''(^|/)build-profile\.json5$'''

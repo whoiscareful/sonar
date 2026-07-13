@@ -52,7 +52,7 @@ Open this folder in DevEco Studio and let dependencies sync.
 
 #### 3) Configure Signing
 
-The repository's `build-profile.json5` contains the maintainer's local signing configuration (machine-specific paths and encrypted passwords). To build on your own machine, replace the following fields with your own signing materials:
+The tracked `build-profile.json5` intentionally contains no signing materials. Configure signing locally in DevEco Studio when a signed build is required. Never commit certificate paths, aliases, or encrypted passwords.
 
 - `certpath`
 - `profile`
@@ -60,7 +60,9 @@ The repository's `build-profile.json5` contains the maintainer's local signing c
 - `keyPassword`
 - `storePassword`
 
-Recommended: keep your actual certificate files outside the repository or under a local ignored path.
+Keep certificate files outside the repository or under an ignored local path. Before committing, check that `git diff -- build-profile.json5` contains no signing material.
+
+This repository includes a Gitleaks pre-commit hook. Enable it once per clone with `git config core.hooksPath .githooks`.
 
 #### 4) Build and Run
 
@@ -175,7 +177,7 @@ HeartTone（心音）是一款 HarmonyOS 音乐客户端，兼容 SonicAPI / Sub
 
 #### 3) 配置签名
 
-仓库中 `build-profile.json5` 包含维护者的本地签名配置（机器相关路径与加密密码）。要在自己的机器上构建，请将以下字段替换为你本地的签名材料和密码：
+仓库跟踪的 `build-profile.json5` 不包含任何签名材料。需要签名构建时，请在 DevEco Studio 中仅在本机配置，切勿提交证书路径、别名或加密密码。
 
 - `certpath`
 - `profile`
@@ -183,7 +185,9 @@ HeartTone（心音）是一款 HarmonyOS 音乐客户端，兼容 SonicAPI / Sub
 - `keyPassword`
 - `storePassword`
 
-建议：将实际的证书文件存放在仓库外或本地忽略路径下。
+请将实际的证书文件存放在仓库外或本地忽略路径下。提交前执行 `git diff -- build-profile.json5`，确认其中没有签名材料。
+
+仓库包含 Gitleaks 提交前钩子。每次克隆后执行一次 `git config core.hooksPath .githooks` 即可启用。
 
 #### 4) 构建与运行
 

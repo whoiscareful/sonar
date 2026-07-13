@@ -9,6 +9,11 @@
 
 # Local machine config
 /local.properties
+.env
+.env.*
+*.key
+*.pem
+*.pfx
 *.keystore
 *.jks
 *.p12

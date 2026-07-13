@@ -37,6 +37,10 @@ export struct ExportConfigPage {
       this.errorMessage = '请在我的 > 服务器完成登录';
       return;
     }
+    if (this.exportPassword.trim().length === 0) {
+      this.errorMessage = '请设置配置密码';
+      return;
+    }
     this.isGenerating = true;
     this.errorMessage = '';
     try {
@@ -83,7 +87,7 @@ export struct ExportConfigPage {
 
         AppTextInput({
           text: this.exportPassword,
-          placeholder: '配置密码 (可选，留空使用默认)',
+          placeholder: '配置密码（必填）',
           isPassword: true,
           onValueChange: (v: string) => {
             this.exportPassword = v;
@@ -93,7 +97,9 @@ export struct ExportConfigPage {
         PrimaryButton({
           text: '生成配置',
           loading: this.isGenerating,
-          isEnabled: this.hasRememberedInfo && !this.isGenerating,
+          isEnabled: this.hasRememberedInfo &&
+            this.exportPassword.trim().length > 0 &&
+            !this.isGenerating,
           onPressed: () => {
             void this.generateConfig();
           }

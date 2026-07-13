@@ -199,7 +199,7 @@ export struct LoginPage {
 
     AppTextInput({
       text: this.vm.importPassword,
-      placeholder: '配置密码 (可选，留空使用默认)',
+      placeholder: '配置密码（必填）',
       isPassword: true,
       onValueChange: (v: string) => {
         this.vm.importPassword = v;
@@ -210,7 +210,7 @@ export struct LoginPage {
     PrimaryButton({
       text: '导入并登录',
       loading: this.vm.isLoading,
-      isEnabled: !this.vm.isLoading,
+      isEnabled: this.vm.importPassword.trim().length > 0 && !this.vm.isLoading,
       onPressed: () => {
         this.vm.importAndLogin(
           () => {
