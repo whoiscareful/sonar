@@ -1,3 +1,4 @@
+import { common, Want } from '@kit.AbilityKit';
 import { Song } from '../../api/SubsonicTypes';
 import { CoverDisplayResolver } from '../../cache/CoverDisplayResolver';
 import { SongCache } from '../../cache/SongCache';
@@ -9,11 +10,14 @@ import { PlaybackService } from '../../playback/PlaybackService';
 import { PlaybackPhase } from '../../playback/PlaybackSnapshot';
 import { MusicViewModel } from '../../viewmodel/MusicViewModel';
 import { UiTokens } from '../../ui/tokens/UiTokens';
+import { MusicTagWebOpenApiClient } from '../../enhanced/MusicTagWebOpenApiClient';
+import { AddToUserPlaylistResult, UserPlaylistPicker } from '../../domain/playlist/UserPlaylistPicker';
 
 export type MusicListVariant = 'album' | 'browse';
 
 const MUSIC_LIST_COVER_SIZE: number = 44;
 const MUSIC_LIST_COVER_RADIUS: number = 8;
+const TAP_MOVE_CANCEL_DISTANCE: number = 3;
 
 @Component
 struct MusicListCoverThumb {
@@ -62,6 +66,9 @@ export struct MusicListRow {
   @Prop playbackPhase: PlaybackPhase = 'idle';
   @Prop showArtist: boolean = false;
   @Prop isLast: boolean = false;
+  @State private touchStartX: number = 0;
+  @State private touchStartY: number = 0;
+  @State private touchMoved: boolean = false;
 
   private static emptySong(): Song {
     return {
@@ -80,10 +87,8 @@ export struct MusicListRow {
     return this.highlightSongId.length > 0 && this.song.id === this.highlightSongId;
   }
 
-  private isNowPlaying(): boolean {
-    return this.playingTrackId.length > 0 &&
-      this.song.id === this.playingTrackId &&
-      this.playbackPhase === 'playing';
+  private isCurrentTrack(): boolean {
+    return this.playingTrackId.length > 0 && this.song.id === this.playingTrackId;
   }
 
   private formatDurationSeconds(seconds: number): string {
@@ -103,10 +108,71 @@ export struct MusicListRow {
   }
 
   private trailingMetaText(): string {
-    if (this.isNowPlaying()) {
-      return '正在播放';
+    if (this.isCurrentTrack()) {
+      if (this.playbackPhase === 'playing') {
+        return '正在播放';
+      }
+      if (this.playbackPhase === 'loading') {
+        return '加载中';
+      }
+      if (this.playbackPhase === 'error') {
+        return '播放失败';
+      }
+      return '已暂停';
     }
     return this.formatDurationSeconds(this.song.duration);
+  }
+
+  private handleRowClick(): void {
+    if (this.touchMoved) {
+      this.touchMoved = false;
+      return;
+    }
+    if (this.isCurrentTrack()) {
+      if (this.playbackPhase === 'playing' || this.playbackPhase === 'paused') {
+        void PlaybackService.toggle();
+      } else if (this.playbackPhase === 'idle' || this.playbackPhase === 'error') {
+        void PlaybackService.playFromPlaylistIndex(this.index);
+      }
+      return;
+    }
+    void PlaybackService.playFromPlaylistIndex(this.index);
+  }
+
+  private async removeSong(): Promise<void> {
+    const index: number = this.index;
+    const title: string = this.song.title;
+    try {
+      await PlaybackService.removeFromPlaylist(index);
+      ToastUtil.show(this, `已从播放列表移除：${title}`, 1600);
+    } catch (err) {
+      ToastUtil.show(this, `移除失败：${(err as Error).message}`, 1800);
+    }
+  }
+
+  private handleTouch(event: TouchEvent): void {
+    if (event.touches.length === 0) {
+      return;
+    }
+    const x: number = event.touches[0].x;
+    const y: number = event.touches[0].y;
+    if (event.type === TouchType.Down) {
+      this.touchStartX = x;
+      this.touchStartY = y;
+      this.touchMoved = false;
+      return;
+    }
+    if (event.type === TouchType.Move) {
+      const dx: number = Math.abs(x - this.touchStartX);
+      const dy: number = Math.abs(y - this.touchStartY);
+      if (dx > TAP_MOVE_CANCEL_DISTANCE || dy > TAP_MOVE_CANCEL_DISTANCE) {
+        this.touchMoved = true;
+      }
+      return;
+    }
+    if (event.type === TouchType.Cancel) {
+      this.touchMoved = true;
+    }
   }
 
   @Builder
@@ -131,7 +197,7 @@ export struct MusicListRow {
     .alignItems(VerticalAlign.Center)
     .backgroundColor(UiTokens.COLOR_DANGER)
     .onClick(() => {
-      void PlaybackService.removeFromPlaylist(this.index);
+      void this.removeSong();
     })
   }
 
@@ -164,8 +230,11 @@ export struct MusicListRow {
         .width('100%')
         .padding({ top: 14, bottom: 14 })
         .alignItems(VerticalAlign.Center)
+        .onTouch((event: TouchEvent) => {
+          this.handleTouch(event);
+        })
         .onClick(() => {
-          void PlaybackService.playFromPlaylistIndex(this.index);
+          this.handleRowClick();
         })
 
         if (!this.isLast) {
@@ -195,6 +264,15 @@ export struct MusicListView {
   @Prop showAlbumCover: boolean = false;
   @Prop albumCoverArtId: string = '';
   @Prop showRemoveFromRecent: boolean = false;
+  @Prop enableLongPressSelection: boolean = false;
+  @Prop selectionMode: boolean = false;
+  @Prop selectedSongIds: string[] = [];
+  @BuilderParam onLongPressSelection: (song: Song) => void;
+  @BuilderParam onSelectionToggle: (song: Song) => void;
+  @State private touchStartX: number = 0;
+  @State private touchStartY: number = 0;
+  @State private touchMoved: boolean = false;
+  @State private longPressedSongId: string = '';
 
   private static readonly COVER_SIZE: number = MUSIC_LIST_COVER_SIZE;
   private static readonly COVER_RADIUS: number = MUSIC_LIST_COVER_RADIUS;
@@ -238,19 +316,48 @@ export struct MusicListView {
     ToastUtil.show(this, message, 1600);
   }
 
+  private isSelected(song: Song): boolean {
+    return this.selectedSongIds.indexOf(song.id) >= 0;
+  }
+
+  private openMetadataDetail(song: Song): void {
+    if (song.path === undefined || song.path.length === 0) {
+      this.showToast('当前歌曲缺少文件路径，无法打开详情');
+      return;
+    }
+    const url: string = MusicTagWebOpenApiClient.getInstance().metadataDetailUrl(song.path);
+    if (url.length === 0) {
+      this.showToast('请先登录服务器');
+      return;
+    }
+    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    const want: Want = {
+      action: 'ohos.want.action.viewData',
+      uri: url
+    };
+    void context.startAbility(want).catch((err: Error) => {
+      this.showToast(`打开详情失败：${err.message}`);
+    });
+  }
+
   private buildAlbumMenuItems(song: Song): TagButtonMenuItem[] {
     return [
       {
         value: '下一首播放',
         action: (): void => {
-          void PlaybackService.enqueueNext(song);
-          this.showToast(`已加入下一首：${song.title}`);
+          void this.enqueueSongNext(song);
         }
       },
       {
         value: '添加到播放列表',
         action: (): void => {
           void this.appendSongToPlaylist(song);
+        }
+      },
+      {
+        value: '添加到我的歌单',
+        action: (): void => {
+          void this.addSongToUserPlaylist(song);
         }
       },
       {
@@ -267,7 +374,7 @@ export struct MusicListView {
       {
         value: '详情',
         action: (): void => {
-          this.showToast(`跳转音乐详情：${song.title}`);
+          this.openMetadataDetail(song);
         }
       }
     ];
@@ -279,6 +386,34 @@ export struct MusicListView {
       this.showToast(`已添加到播放列表：${song.title}`);
     } else {
       this.showToast(`已在播放列表中：${song.title}`);
+    }
+  }
+
+  private async addSongToUserPlaylist(song: Song): Promise<void> {
+    try {
+      const result: AddToUserPlaylistResult = await UserPlaylistPicker.addSong(this.getUIContext(), song);
+      this.showToast(result.message);
+    } catch (err) {
+      this.showToast(`添加失败：${(err as Error).message}`);
+    }
+  }
+
+  private async enqueueSongNext(song: Song): Promise<void> {
+    try {
+      const result = await PlaybackService.enqueueNext(song);
+      if (result === 'started') {
+        this.showToast(`已开始播放：${song.title}`);
+      } else if (result === 'moved') {
+        this.showToast(`已移到下一首：${song.title}`);
+      } else if (result === 'alreadyNext') {
+        this.showToast(`已经是下一首：${song.title}`);
+      } else if (result === 'current') {
+        this.showToast(`正在播放：${song.title}`);
+      } else {
+        this.showToast(`已加入下一首：${song.title}`);
+      }
+    } catch (err) {
+      this.showToast(`操作失败：${(err as Error).message}`);
     }
   }
 
@@ -308,12 +443,57 @@ export struct MusicListView {
   }
 
   private handleItemClick(index: number, song: Song): void {
+    if (this.longPressedSongId === song.id) {
+      this.longPressedSongId = '';
+      return;
+    }
+    if (this.touchMoved) {
+      this.touchMoved = false;
+      return;
+    }
+    if (this.selectionMode) {
+      this.onSelectionToggle(song);
+      return;
+    }
     if (this.listVariant === 'album' || this.listVariant === 'browse') {
       const coverArt: string = this.listVariant === 'browse' ?
         this.resolveCoverArtId(song) : this.albumCoverArtId;
       void PlaybackService.playQueue(this.songs, index, coverArt).then(() => {
         PlaybackService.setPlaybackMode('listLoop');
       });
+    }
+  }
+
+  private handleItemLongPress(song: Song): void {
+    if (!this.enableLongPressSelection) {
+      return;
+    }
+    this.longPressedSongId = song.id;
+    this.onLongPressSelection(song);
+  }
+
+  private handleTouch(event: TouchEvent): void {
+    if (event.touches.length === 0) {
+      return;
+    }
+    const x: number = event.touches[0].x;
+    const y: number = event.touches[0].y;
+    if (event.type === TouchType.Down) {
+      this.touchStartX = x;
+      this.touchStartY = y;
+      this.touchMoved = false;
+      return;
+    }
+    if (event.type === TouchType.Move) {
+      const dx: number = Math.abs(x - this.touchStartX);
+      const dy: number = Math.abs(y - this.touchStartY);
+      if (dx > TAP_MOVE_CANCEL_DISTANCE || dy > TAP_MOVE_CANCEL_DISTANCE) {
+        this.touchMoved = true;
+      }
+      return;
+    }
+    if (event.type === TouchType.Cancel) {
+      this.touchMoved = true;
     }
   }
 
@@ -328,7 +508,15 @@ export struct MusicListView {
 
   @Builder
   private buildAlbumCoverThumb(song: Song) {
-    if (this.showAlbumCover || this.listVariant === 'browse') {
+    if (this.selectionMode) {
+      Checkbox({ name: `playlist-song-${song.id}`, group: 'playlist-song-selection' })
+        .select(this.isSelected(song))
+        .selectedColor(UiTokens.COLOR_PRIMARY)
+        .width(26)
+        .height(26)
+        .margin({ right: 12 })
+        .hitTestBehavior(HitTestMode.None)
+    } else if (this.showAlbumCover || this.listVariant === 'browse') {
       MusicListCoverThumb({ coverArtId: this.resolveCoverArtId(song) })
     }
   }
@@ -368,7 +556,7 @@ export struct MusicListView {
               .flexShrink(0)
               .margin({ right: 4 })
 
-            if (this.hasMoreMenu()) {
+            if (!this.selectionMode && this.hasMoreMenu()) {
               MoreMenuIconButton({
                 menuItems: this.menuItemsFor(song),
                 useDarkOverlay: false
@@ -379,9 +567,18 @@ export struct MusicListView {
           .width('100%')
           .padding({ top: 14, bottom: 14 })
           .alignItems(VerticalAlign.Center)
+          .onTouch((event: TouchEvent) => {
+            this.handleTouch(event);
+          })
           .onClick(() => {
             this.handleItemClick(index, song);
           })
+          .gesture(
+            LongPressGesture({ repeat: false, duration: 500 })
+              .onAction(() => {
+                this.handleItemLongPress(song);
+              })
+          )
 
           if (index < this.songs.length - 1) {
             this.buildDivider()

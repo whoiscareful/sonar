@@ -33,21 +33,57 @@ export struct LyricView {
   onLineClick?: (lineIndex: number, timeMs: number) => void;
   /** 是否为全屏模式 */
   @Prop isFullscreen: boolean = false;
+  /** 当前歌词层是否处于前台；后台层保持布局，但不响应滚动 */
+  @Prop @Watch('onActiveChanged') isActive: boolean = true;
 
   private scroller: Scroller = new Scroller();
   private lastScrolledIndex: number = -2;
+  private pendingScrollTimerId: number | null = null;
 
   aboutToAppear(): void {
     this.lastScrolledIndex = -2;
+    this.requestScrollToCurrentLine(false);
+  }
+
+  aboutToDisappear(): void {
+    this.cancelPendingScroll();
   }
 
   private onCurrentLineIndexChanged(): void {
-    setTimeout(() => {
-      this.scrollToCurrentLine();
-    }, 0);
+    if (this.isActive) {
+      this.requestScrollToCurrentLine(true);
+    }
   }
 
-  private scrollToCurrentLine(): void {
+  private onActiveChanged(): void {
+    this.cancelPendingScroll();
+    if (!this.isActive) {
+      return;
+    }
+    // 显示前先直接对齐，避免淡入后从旧位置跳到当前行。
+    this.lastScrolledIndex = -2;
+    this.requestScrollToCurrentLine(false);
+  }
+
+  private requestScrollToCurrentLine(smooth: boolean): void {
+    this.cancelPendingScroll();
+    this.pendingScrollTimerId = setTimeout(() => {
+      this.pendingScrollTimerId = null;
+      this.scrollToCurrentLine(smooth);
+    }, 0) as number;
+  }
+
+  private cancelPendingScroll(): void {
+    if (this.pendingScrollTimerId !== null) {
+      clearTimeout(this.pendingScrollTimerId);
+      this.pendingScrollTimerId = null;
+    }
+  }
+
+  private scrollToCurrentLine(smooth: boolean): void {
+    if (!this.isActive) {
+      return;
+    }
     if (this.currentLineIndex < 0 || this.currentLineIndex >= this.lines.length) {
       return;
     }
@@ -55,7 +91,7 @@ export struct LyricView {
       return;
     }
     this.lastScrolledIndex = this.currentLineIndex;
-    this.scroller.scrollToIndex(this.currentLineIndex, true, ScrollAlign.CENTER);
+    this.scroller.scrollToIndex(this.currentLineIndex, smooth, ScrollAlign.CENTER);
   }
 
   /**
@@ -156,6 +192,10 @@ export struct LyricView {
       right: this.isFullscreen ? 32 : 20
     })
     .opacity(this.isFillerLine(line.text) ? 0.4 : this.calculateOpacity(index))
+    .animation({
+      duration: 260,
+      curve: Curve.EaseOut
+    })
     .onClick(() => {
       this.handleLineClick(index);
     })
@@ -184,10 +224,6 @@ export struct LyricView {
         .edgeEffect(EdgeEffect.Spring)
         .alignListItem(ListItemAlign.Center)
         .backgroundColor(Color.Transparent)
-        .animation({
-          duration: 500,
-          curve: Curve.FastOutSlowIn
-        })
       }
     }
     .width('100%')

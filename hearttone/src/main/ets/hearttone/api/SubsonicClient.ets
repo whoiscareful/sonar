@@ -58,6 +58,14 @@ export class SubsonicClient {
     return await SubsonicApi.getRandomSongs(size);
   }
 
+  async getStarredSongs(): Promise<Song[]> {
+    return await SubsonicApi.getStarredSongs();
+  }
+
+  async setSongStarred(songId: string, starred: boolean): Promise<void> {
+    await SubsonicApi.setSongStarred(songId, starred);
+  }
+
   async getSongsViaAlbumList(type: MusicListKind, albumBatchSize: number,
     albumOffset: number): Promise<Song[]> {
     if (type === 'random') {

@@ -3,6 +3,13 @@ import { AlbumDetailPage } from './AlbumDetailPage';
 import { CacheSettingsPage } from './CacheSettingsPage';
 import { ExportConfigPage } from './ExportConfigPage';
 import { NowPlayingPage } from './NowPlayingPage';
+import { MusicStatsPage } from './MusicStatsPage';
+import { DataManagementPage } from './DataManagementPage';
+import { PlaylistLibraryPage } from './PlaylistLibraryPage';
+import { PlaylistImportPage } from './PlaylistImportPage';
+import { PlaylistDetailPage } from './PlaylistDetailPage';
+import { PlaylistTransferPage } from './PlaylistTransferPage';
+import { PersonalizationSettingsPage } from './PersonalizationSettingsPage';
 import { ServerSettingsContent } from '../components/settings/ServerSettingsContent';
 import { SecondaryHdsDestination } from '../components/navigation/SecondaryHdsDestination';
 
@@ -31,6 +38,31 @@ function buildExportConfigContent() {
   ExportConfigPage()
 }
 
+@Builder
+function buildPersonalizationContent() {
+  PersonalizationSettingsPage()
+}
+
+@Builder
+function buildMusicStatsContent() {
+  MusicStatsPage()
+}
+
+@Builder
+function buildDataManagementContent() {
+  DataManagementPage()
+}
+
+@Builder
+function buildPlaylistLibraryContent() {
+  PlaylistLibraryPage()
+}
+
+@Builder
+function buildPlaylistImportContent() {
+  PlaylistImportPage()
+}
+
 @Component
 struct CacheSettingsNavPage {
   build() {
@@ -45,8 +77,60 @@ struct CacheSettingsNavPage {
 struct ExportConfigNavPage {
   build() {
     SecondaryHdsDestination({
-      title: '导出配置',
+      title: '备份与恢复',
       content: buildExportConfigContent
+    })
+  }
+}
+
+@Component
+struct PersonalizationNavPage {
+  build() {
+    SecondaryHdsDestination({
+      title: '个性化配置',
+      content: buildPersonalizationContent
+    })
+  }
+}
+
+@Component
+struct MusicStatsNavPage {
+  build() {
+    SecondaryHdsDestination({
+      title: '音乐统计',
+      contentVariant: 'hero',
+      content: buildMusicStatsContent
+    })
+  }
+}
+
+@Component
+struct DataManagementNavPage {
+  build() {
+    SecondaryHdsDestination({
+      title: '数据管理',
+      content: buildDataManagementContent
+    })
+  }
+}
+
+@Component
+struct PlaylistLibraryNavPage {
+  build() {
+    SecondaryHdsDestination({
+      title: '我的歌单',
+      contentVariant: 'hero',
+      content: buildPlaylistLibraryContent
+    })
+  }
+}
+
+@Component
+struct PlaylistImportNavPage {
+  build() {
+    SecondaryHdsDestination({
+      title: '新建歌单',
+      content: buildPlaylistImportContent
     })
   }
 }
@@ -79,6 +163,20 @@ export function PageMap(name: string) {
     ExportConfigNavPage()
   } else if (name === 'ServerPage') {
     ServerNavPage()
+  } else if (name === 'PersonalizationPage') {
+    PersonalizationNavPage()
+  } else if (name === 'MusicStatsPage') {
+    MusicStatsNavPage()
+  } else if (name === 'DataManagementPage') {
+    DataManagementNavPage()
+  } else if (name === 'PlaylistLibraryPage') {
+    PlaylistLibraryNavPage()
+  } else if (name === 'PlaylistImportPage') {
+    PlaylistImportNavPage()
+  } else if (name === 'PlaylistDetailPage') {
+    PlaylistDetailPage()
+  } else if (name === 'PlaylistTransferPage') {
+    PlaylistTransferPage()
   } else if (name === 'NowPlayingPage') {
     NavDestination() {
       NowPlayingPage()

@@ -14,7 +14,7 @@ import deviceInfo from '@ohos.deviceInfo';
 @Component
 export struct FloatingTabBar {
   @Consume('tabScrollerBridge') tabScrollerBridge: TabScrollerBridge = new TabScrollerBridge();
-  @StorageLink('rootTabIndex') rootTabIndex: number = 0;
+  @StorageLink('rootTabIndex') rootTabIndex: number = 1;
   @State private containerWidth: number = 360;
 
   aboutToAppear(): void {
@@ -44,7 +44,7 @@ export struct FloatingTabBar {
       TabContent() {
         buildLibraryTabPage()
       }
-      .tabBar($r('app.media.tab_album'))
+      .tabBar($r('app.media.tab_home'))
 
       TabContent() {
         buildProfileTabPage()

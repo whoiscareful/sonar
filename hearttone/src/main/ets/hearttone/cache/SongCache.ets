@@ -132,6 +132,22 @@ export class SongCache {
     }
   }
 
+  static async clearAll(): Promise<void> {
+    SongCache.writer.cancel();
+    SongCache.downloadQueue.clear();
+    const entries: SongCacheEntry[] = [];
+    SongCache.entryMap.forEach((entry: SongCacheEntry) => {
+      entries.push(entry);
+    });
+    for (let i: number = 0; i < entries.length; i++) {
+      CacheFileUtil.removeIfExists(SongCache.entryPath(entries[i]));
+      CacheFileUtil.removeIfExists(SongCache.partPathForEntry(entries[i]));
+    }
+    SongCache.entryMap.clear();
+    await SongCache.flushPersistIndex();
+    SongCache.publishUsageState();
+  }
+
   static async evictIfNeeded(): Promise<void> {
     const limitBytes: number = SongCache.getLimitBytes();
     let evicted: boolean = false;

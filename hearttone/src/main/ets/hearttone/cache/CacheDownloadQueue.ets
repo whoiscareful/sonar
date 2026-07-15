@@ -28,6 +28,11 @@ export class CacheDownloadQueue {
     }
   }
 
+  clear(): void {
+    this.pending.clear();
+    this.queue.splice(0, this.queue.length);
+  }
+
   async process(handler: (id: string) => Promise<void>): Promise<void> {
     if (this.processing) {
       return;

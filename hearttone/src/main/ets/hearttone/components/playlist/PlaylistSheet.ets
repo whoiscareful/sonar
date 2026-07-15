@@ -2,6 +2,7 @@ import { PlaylistListView } from './PlaylistListView';
 import { PlaybackPhase } from '../../playback/PlaybackSnapshot';
 import { PlaylistSnapshot } from '../../playback/PlaylistSnapshot';
 import { UiTokens } from '../../ui/tokens/UiTokens';
+import { PLAYLIST_SHEET_SCROLL_SEQ_KEY } from './PlaylistSheetState';
 
 @Component
 export struct PlaylistSheet {
@@ -13,17 +14,47 @@ export struct PlaylistSheet {
     // PlaylistListView 内部通过 @Prop playlist 同步数据源
   }
 
+  private queueSummary(): string {
+    const count: number = this.playlist.items.length;
+    if (this.playlist.currentIndex >= 0 && this.playlist.currentIndex < count) {
+      return `${count} 首 · 当前第 ${this.playlist.currentIndex + 1} 首`;
+    }
+    return `${count} 首`;
+  }
+
+  private scrollToCurrent(): void {
+    const current: number = AppStorage.get<number>(PLAYLIST_SHEET_SCROLL_SEQ_KEY) ?? 0;
+    AppStorage.setOrCreate<number>(PLAYLIST_SHEET_SCROLL_SEQ_KEY, current + 1);
+  }
+
   build() {
     Column() {
-      Row({ space: 8 }) {
-        Text('播放列表')
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(UiTokens.COLOR_TEXT_PRIMARY)
-        Text(`${this.playlist.items.length} 首`)
-          .fontSize(13)
-          .fontColor(UiTokens.COLOR_TEXT_SECONDARY)
-          .margin({ top: 2 })
+      Row() {
+        Column({ space: 2 }) {
+          Text('播放列表')
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(UiTokens.COLOR_TEXT_PRIMARY)
+          Text(this.queueSummary())
+            .fontSize(12)
+            .fontColor(UiTokens.COLOR_TEXT_SECONDARY)
+        }
+        .alignItems(HorizontalAlign.Start)
+
+        Blank()
+
+        if (this.playlist.currentIndex >= 0) {
+          Button('定位当前')
+            .fontSize(12)
+            .fontColor(UiTokens.COLOR_PRIMARY)
+            .height(32)
+            .padding({ left: 12, right: 12 })
+            .backgroundColor(UiTokens.COLOR_CARD_BG)
+            .borderRadius(10)
+            .onClick(() => {
+              this.scrollToCurrent();
+            })
+        }
       }
       .width('100%')
       .padding({ left: 20, right: 48, top: 16, bottom: 12 })

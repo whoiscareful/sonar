@@ -44,12 +44,13 @@ export struct SonicApiEntryModule {
           .layoutWeight(1)
 
           TagButton({
-            text: this.isLoggedIn ? '进入专辑' : '连接服务器',
+            text: this.isLoggedIn ? '打开音乐库' : '连接服务器',
             fontColor: UiTokens.COLOR_TEXT_ON_BRAND,
             bgColor: this.isLoggedIn ? UiTokens.COLOR_PRIMARY : UiTokens.COLOR_SUCCESS_ALT,
             onPressed: () => {
               if (this.isLoggedIn) {
                 AppStorage.setOrCreate<number>('rootTabIndex', 1);
+                this.appPathStack.clear();
               } else {
                 this.appPathStack.pushPathByName('LoginPage', null);
               }

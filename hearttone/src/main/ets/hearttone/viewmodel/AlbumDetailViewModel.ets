@@ -1,7 +1,7 @@
 import { AlbumDetailContainer, Song } from '../api/SubsonicTypes';
-import { SubsonicClient } from '../api/SubsonicClient';
 import { AuthSession } from '../auth/AuthSession';
 import { CoverDisplayResolver } from '../cache/CoverDisplayResolver';
+import { MusicCatalogRepository } from '../domain/music/MusicCatalogRepository';
 
 @Observed
 export class AlbumDetailViewModel {
@@ -10,6 +10,7 @@ export class AlbumDetailViewModel {
   isLoading: boolean = false;
   errorMessage: string = '';
   authExpired: boolean = false;
+  private readonly catalog: MusicCatalogRepository = MusicCatalogRepository.getInstance();
 
   async load(albumId: string): Promise<void> {
     if (this.isLoading) {
@@ -19,7 +20,7 @@ export class AlbumDetailViewModel {
     this.errorMessage = '';
     this.authExpired = false;
     try {
-      const resp = await SubsonicClient.getInstance().getAlbum(albumId);
+      const resp = await this.catalog.album(albumId);
       this.album = resp.album;
       this.songs = resp.album.song ?? [];
     } catch (err) {

@@ -8,6 +8,14 @@ import { SongMetadataCache } from '../cache/SongMetadataCache';
 import { PlaybackService } from '../playback/PlaybackService';
 import { PlaybackPipeline } from '../playback/pipeline/PlaybackPipeline';
 import { RecentPlayHistoryStore } from '../settings/RecentPlayHistoryStore';
+import { UserPlaylistStore } from '../settings/UserPlaylistStore';
+import { PlaylistArtworkStore } from '../settings/PlaylistArtworkStore';
+import { CoverCache } from '../playback/CoverCache';
+import { MusicViewModel } from '../viewmodel/MusicViewModel';
+import { FavoriteSyncService } from '../domain/music/FavoriteSyncService';
+import { LyricsRepository } from '../domain/lyrics/LyricsRepository';
+import { MusicTagWebOpenApiClient } from '../enhanced/MusicTagWebOpenApiClient';
+import { ProfileAppearanceStore } from '../settings/ProfileAppearanceStore';
 
 export type AuthPhase = 'booting' | 'anonymous' | 'authenticated';
 
@@ -92,6 +100,9 @@ export class AuthSession {
     EndpointRouter.start();
     NetworkCoordinator.init();
     PlaybackPipeline.initialize();
+    const openApiClient: MusicTagWebOpenApiClient = MusicTagWebOpenApiClient.getInstance();
+    LyricsRepository.configureEnhancedProvider(openApiClient);
+    ProfileAppearanceStore.getInstance().configureProvider(openApiClient);
     void EndpointRouter.bootstrap(auth);
   }
 
@@ -100,6 +111,13 @@ export class AuthSession {
     NetworkCoordinator.shutdown();
     SongMetadataCache.clear();
     RecentPlayHistoryStore.getInstance().clearMemory();
+    UserPlaylistStore.getInstance().clearMemory();
+    PlaylistArtworkStore.getInstance().clearMemory();
+    CoverCache.releaseAll();
+    MusicViewModel.getInstance().reset();
+    FavoriteSyncService.getInstance().clear();
+    LyricsRepository.configureEnhancedProvider(null);
+    ProfileAppearanceStore.getInstance().configureProvider(null);
     await PlaybackService.release();
   }
 }

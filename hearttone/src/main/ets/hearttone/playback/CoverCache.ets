@@ -243,6 +243,23 @@ export class CoverCache {
     }
   }
 
+  static async clearAll(): Promise<void> {
+    CoverCache.downloadQueue.clear();
+    await CoverCache.releaseAll();
+    const entries: CoverCacheEntry[] = [];
+    CoverCache.entryMap.forEach((entry: CoverCacheEntry) => {
+      entries.push(entry);
+    });
+    for (let i: number = 0; i < entries.length; i++) {
+      CacheFileUtil.removeIfExists(CoverCache.entryPath(entries[i]));
+    }
+    CoverCache.entryMap.clear();
+    CoverCache.safeIdToCoverArtId.clear();
+    await CoverCache.flushPersistIndex();
+    CoverCache.publishUsageState();
+    CoverCacheStore.bumpRevision();
+  }
+
   static async evictIfNeeded(): Promise<void> {
     const limitBytes: number = CoverCache.getLimitBytes();
     let evicted: boolean = false;

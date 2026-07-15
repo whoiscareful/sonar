@@ -1,10 +1,11 @@
 import { MusicListKind, Song } from '../api/SubsonicTypes';
-import { SubsonicClient } from '../api/SubsonicClient';
 import { AuthSession } from '../auth/AuthSession';
 import { CoverDisplayResolver } from '../cache/CoverDisplayResolver';
 import { SongMetadataCache } from '../cache/SongMetadataCache';
 import { MusicTabSettingsStore } from '../settings/MusicTabSettingsStore';
 import { RecentPlayHistoryStore } from '../settings/RecentPlayHistoryStore';
+import { FavoriteSyncService } from '../domain/music/FavoriteSyncService';
+import { MusicCatalogRepository } from '../domain/music/MusicCatalogRepository';
 
 export const RANDOM_SONGS_SIZE: number = 100;
 export const MUSIC_PAGE_SIZE: number = 60;
@@ -33,6 +34,8 @@ export class MusicViewModel {
   private listOffset: number = 0;
   private randomSongsCache: Song[] = [];
   private randomFetched: boolean = false;
+  private readonly catalog: MusicCatalogRepository = MusicCatalogRepository.getInstance();
+  private readonly favorites: FavoriteSyncService = FavoriteSyncService.getInstance();
 
   /** 跨 MusicPage 重建保留列表态（外屏预览、二级页返回等） */
   static getInstance(): MusicViewModel {
@@ -62,7 +65,8 @@ export class MusicViewModel {
   }
 
   async setKind(nextKind: MusicListKind): Promise<void> {
-    if (nextKind !== 'recent' && this.kind === nextKind && !this.isSearchMode && this.songs.length > 0) {
+    if (nextKind !== 'recent' && nextKind !== 'favorite' &&
+      this.kind === nextKind && !this.isSearchMode && this.songs.length > 0) {
       return;
     }
     if (this.kind === 'random' && !this.isSearchMode && this.songs.length > 0) {
@@ -93,7 +97,7 @@ export class MusicViewModel {
     this.randomFetched = false;
     this.randomSongsCache = [];
     try {
-      const loaded: Song[] = await SubsonicClient.getInstance().getRandomSongs(RANDOM_SONGS_SIZE);
+      const loaded: Song[] = await this.catalog.randomSongs(RANDOM_SONGS_SIZE);
       this.songs = loaded;
       this.randomSongsCache = loaded.slice();
       this.randomFetched = true;
@@ -122,11 +126,36 @@ export class MusicViewModel {
       await this.reloadRandom();
       return;
     }
+    if (this.kind === 'favorite') {
+      await this.loadFavorites();
+      return;
+    }
     if (this.kind === 'recent') {
       await this.loadRecentPlayed(true);
       return;
     }
     await this.loadAlbumDerived(true);
+  }
+
+  private async loadFavorites(): Promise<void> {
+    if (this.isLoading) {
+      return;
+    }
+    this.isSearchMode = false;
+    this.searchQuery = '';
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.authExpired = false;
+    this.hasMore = false;
+    this.listOffset = 0;
+    try {
+      this.songs = await this.favorites.refreshAll();
+    } catch (err) {
+      await this.handleLoadError(err as Error);
+      this.songs = [];
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   private async fetchRecentPage(offset: number, limit: number): Promise<RecentPageResult> {
@@ -190,7 +219,7 @@ export class MusicViewModel {
     this.errorMessage = '';
     this.authExpired = false;
     try {
-      const batch: Song[] = await SubsonicClient.getInstance().getSongsViaAlbumList(
+      const batch: Song[] = await this.catalog.songsForKind(
         this.kind, ALBUM_BATCH_SIZE, this.listOffset);
       if (reset) {
         this.songs = batch;
@@ -211,7 +240,7 @@ export class MusicViewModel {
   }
 
   async loadMore(): Promise<void> {
-    if (this.kind === 'random' || this.isSearchMode || this.isLoading ||
+    if (this.kind === 'favorite' || this.kind === 'random' || this.isSearchMode || this.isLoading ||
       this.isLoadingMore || !this.hasMore) {
       return;
     }
@@ -226,7 +255,7 @@ export class MusicViewModel {
         this.hasMore = page.hasMore;
         return;
       }
-      const batch: Song[] = await SubsonicClient.getInstance().getSongsViaAlbumList(
+      const batch: Song[] = await this.catalog.songsForKind(
         this.kind, ALBUM_BATCH_SIZE, this.listOffset);
       if (batch.length > 0) {
         this.songs = MusicViewModel.mergeSongs(this.songs, batch);
@@ -263,7 +292,7 @@ export class MusicViewModel {
     this.authExpired = false;
     this.hasMore = false;
     try {
-      const resp = await SubsonicClient.getInstance().search3(normalized, 0, 0, 50);
+      const resp = await this.catalog.search(normalized, 0, 0, 50);
       this.songs = resp.searchResult3?.song ?? [];
     } catch (err) {
       await this.handleLoadError(err as Error);
@@ -297,6 +326,43 @@ export class MusicViewModel {
       }
     }
     return merged;
+  }
+
+  async setFavorite(songId: string, favorite: boolean): Promise<void> {
+    await this.favorites.setFavorite(songId, favorite);
+    const marker: string | undefined = favorite ? new Date().toISOString() : undefined;
+    for (let i: number = 0; i < this.songs.length; i++) {
+      if (this.songs[i].id === songId) {
+        this.songs[i].starred = marker;
+      }
+    }
+    if (!favorite && this.kind === 'favorite') {
+      this.songs = this.songs.filter((song: Song) => song.id !== songId);
+    } else {
+      this.songs = this.songs.slice();
+    }
+  }
+
+  async toggleFavorite(song: Song): Promise<boolean> {
+    const favorite: boolean = await this.favorites.toggle(song);
+    if (!favorite && this.kind === 'favorite') {
+      this.songs = this.songs.filter((item: Song) => item.id !== song.id);
+    } else {
+      this.songs = this.songs.slice();
+    }
+    return favorite;
+  }
+
+  reconcileFavoriteState(): void {
+    if (this.kind === 'favorite') {
+      this.songs = this.songs.filter((song: Song) => this.favorites.isFavorite(song.id));
+      return;
+    }
+    for (let i: number = 0; i < this.songs.length; i++) {
+      const favorite: boolean = this.favorites.isFavorite(this.songs[i].id);
+      this.songs[i].starred = favorite ? (this.songs[i].starred ?? new Date().toISOString()) : undefined;
+    }
+    this.songs = this.songs.slice();
   }
 
   async removeFromRecent(songId: string): Promise<void> {

@@ -3,12 +3,12 @@
 export class TabScrollerBridge {
   private static readonly DOUBLE_TAP_INTERVAL_MS: number = 350;
 
-  private scrollers: Scroller[] = [new Scroller(), new Scroller(), new Scroller()];
+  private scrollers: ListScroller[] = [new ListScroller(), new ListScroller(), new ListScroller()];
   activeTabIndex: number = 0;
   private lastTabBarTapIndex: number = -1;
   private lastTabBarTapAt: number = 0;
 
-  scrollerForTab(tabIndex: number): Scroller {
+  scrollerForTab(tabIndex: number): ListScroller {
     if (tabIndex >= 0 && tabIndex < this.scrollers.length) {
       return this.scrollers[tabIndex];
     }
@@ -25,7 +25,18 @@ export class TabScrollerBridge {
     return this.scrollers[this.activeTabIndex];
   }
 
-  /** 音乐(0) / 专辑(1) Tab 已选中时双击 TabBar 图标回到列表顶部 */
+  scrollMusicToSong(indexInGroup: number): void {
+    if (indexInGroup < 0) {
+      return;
+    }
+    try {
+      this.scrollers[0].scrollToItemInGroup(0, indexInGroup, true, ScrollAlign.CENTER);
+    } catch (_err) {
+      // 列表尚未完成布局时不定位，避免可选快捷动作影响主列表。
+    }
+  }
+
+  /** 音乐(0) / 首页(1) Tab 已选中时双击 TabBar 图标回到列表顶部 */
   handleTabBarClick(clickedIndex: number, currentIndex: number): void {
     if (!TabScrollerBridge.supportsScrollToTop(clickedIndex)) {
       return;

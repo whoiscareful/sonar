@@ -6,6 +6,12 @@ import { AuthStore, SavedAuth } from '../auth/AuthStore';
 import { AuthSession } from '../auth/AuthSession';
 import { ConfigCodecError, HeartToneConfigCodec } from '../settings/HeartToneConfigCodec';
 
+interface UrlParts {
+  protocol: string;
+  host: string;
+  port: string;
+}
+
 @Observed
 export class LoginViewModel {
   serverProtocol: string = 'https';
@@ -29,7 +35,7 @@ export class LoginViewModel {
     return `${protocol}://${trimmedHost}${portSuffix}`;
   }
 
-  private static parseUrl(url: string): { protocol: string; host: string; port: string } {
+  private static parseUrl(url: string): UrlParts {
     const matched: RegExpMatchArray | null = url.trim().match(/^(https?):\/\/([^/:]+)(?::(\d+))?(.*)$/i);
     if (matched !== null) {
       return {
@@ -80,10 +86,18 @@ export class LoginViewModel {
     if (this.username.length === 0) {
       this.username = info.username;
     }
-    if (this.password.length === 0) {
-      this.password = info.password;
-    }
+    // 不将持久化密码自动写回输入框；修改服务器配置时必须由用户重新确认密码。
+    this.password = '';
     this.rememberedLoaded = true;
+  }
+
+  clearServerPassword(): void {
+    this.password = '';
+  }
+
+  clearImportInputs(): void {
+    this.importBase64 = '';
+    this.importPassword = '';
   }
 
   async submit(onSuccess: () => void): Promise<void> {

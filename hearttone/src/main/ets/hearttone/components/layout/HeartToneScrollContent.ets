@@ -36,9 +36,5 @@ export struct HeartToneScrollContent {
       top: this.topPadding(),
       bottom: this.bottomPadding()
     })
-    .linearGradient({
-      angle: 160,
-      colors: [[UiTokens.COLOR_BG_GRADIENT_TOP, 0], [UiTokens.COLOR_BG_GRADIENT_BOTTOM, 1]]
-    })
   }
 }

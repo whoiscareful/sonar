@@ -5,6 +5,7 @@ import { AuthStore } from '../hearttone/auth/AuthStore';
 import { EndpointRouter } from '../hearttone/network/routing/EndpointRouter';
 import { PlaybackService } from '../hearttone/playback/PlaybackService';
 import { ScreenProfileStore } from '../hearttone/ui/adaptation/ScreenProfileStore';
+import { ProfileAppearanceStore } from '../hearttone/settings/ProfileAppearanceStore';
 
 const DOMAIN = 0x0000;
 
@@ -45,13 +46,16 @@ export default class HeartToneAbility extends UIAbility {
     // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
+    this.setupImmersiveWindow(windowStage);
     windowStage.loadContent('hearttone/pages/Index', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
         return;
       }
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
-      this.setupImmersiveWindow(windowStage);
+    });
+    ProfileAppearanceStore.getInstance().init(this.context).catch((err: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'ProfileAppearanceStore init failed: %{public}s', err.message);
     });
   }
 
@@ -61,6 +65,12 @@ export default class HeartToneAbility extends UIAbility {
       this.mainWindow = win;
       win.setWindowLayoutFullScreen(true).catch((err: Error) => {
         hilog.error(DOMAIN, 'testTag', 'setWindowLayoutFullScreen failed: %{public}s', err.message);
+      });
+      win.setSpecificSystemBarEnabled('status', false).catch((err: Error) => {
+        hilog.error(DOMAIN, 'testTag', 'hide status bar failed: %{public}s', err.message);
+      });
+      win.setSpecificSystemBarEnabled('navigationIndicator', false).catch((err: Error) => {
+        hilog.error(DOMAIN, 'testTag', 'hide navigation indicator failed: %{public}s', err.message);
       });
       this.applySystemBarStyle(win, this.context.config.colorMode);
       this.updateAvoidAreaInsets(win);

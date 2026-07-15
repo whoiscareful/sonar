@@ -30,12 +30,12 @@ export class SongCacheStore {
 
   static publishUsedBytes(bytes: number): void {
     SongCacheStore.ensureInitialized();
-    AppStorage.setOrCreate<number>(KEY_USED_BYTES, bytes);
+    AppStorage.set<number>(KEY_USED_BYTES, bytes);
   }
 
   static publishLimitGb(limitGb: CacheLimitGb): void {
     SongCacheStore.ensureInitialized();
-    AppStorage.setOrCreate<number>(KEY_LIMIT_GB, limitGb);
+    AppStorage.set<number>(KEY_LIMIT_GB, limitGb);
   }
 
   static getAutoCacheMode(): AutoCacheMode {
@@ -48,7 +48,7 @@ export class SongCacheStore {
 
   static publishAutoCacheMode(mode: AutoCacheMode): void {
     SongCacheStore.ensureInitialized();
-    AppStorage.setOrCreate<string>(KEY_AUTO_CACHE_MODE, mode);
+    AppStorage.set<string>(KEY_AUTO_CACHE_MODE, mode);
   }
 
   static formatBytes(bytes: number): string {
@@ -56,7 +56,7 @@ export class SongCacheStore {
       return `${bytes} B`;
     }
     if (bytes < 1024 * 1024) {
-      return `${(bytes / 1024).toFixed(1)} MB`;
+      return `${(bytes / 1024).toFixed(1)} KB`;
     }
     if (bytes < 1024 * 1024 * 1024) {
       return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;

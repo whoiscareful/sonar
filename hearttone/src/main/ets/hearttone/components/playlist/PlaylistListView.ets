@@ -2,7 +2,7 @@ import { Song } from '../../api/SubsonicTypes';
 import { PlaybackPhase } from '../../playback/PlaybackSnapshot';
 import { PlaylistSnapshot } from '../../playback/PlaylistSnapshot';
 import { MusicListRow } from '../lists/MusicListView';
-import { PLAYLIST_SHEET_SCROLL_SEQ_KEY } from './PlaylistSheetController';
+import { PLAYLIST_SHEET_SCROLL_SEQ_KEY } from './PlaylistSheetState';
 import { PlaylistDataSource } from './PlaylistDataSource';
 
 @Component
@@ -15,34 +15,57 @@ export struct PlaylistListView {
 
   private scroller: ListScroller = new ListScroller();
   private dataSource: PlaylistDataSource = new PlaylistDataSource();
+  private lastCurrentIndex: number = -1;
+  private pendingScrollTimerId: number | null = null;
+  private isUserScrolling: boolean = false;
 
   aboutToAppear(): void {
     this.syncDataSource();
-    this.scrollToCurrent(this.playlist.currentIndex);
+    this.lastCurrentIndex = this.playlist.currentIndex;
+    this.scrollToCurrent(this.playlist.currentIndex, false);
+  }
+
+  aboutToDisappear(): void {
+    this.cancelPendingScroll();
   }
 
   private onPlaylistChanged(): void {
     this.syncDataSource();
+    if (this.playlist.currentIndex !== this.lastCurrentIndex) {
+      this.lastCurrentIndex = this.playlist.currentIndex;
+      if (!this.isUserScrolling) {
+        this.scrollToCurrent(this.playlist.currentIndex, true);
+      }
+    }
   }
 
   private onScrollRequest(): void {
     if (this.scrollSeq <= 0) {
       return;
     }
-    this.scrollToCurrent(this.playlist.currentIndex);
+    this.scrollToCurrent(this.playlist.currentIndex, true);
   }
 
   private syncDataSource(): void {
     this.dataSource.setSongs(this.playlist.items);
   }
 
-  private scrollToCurrent(index: number): void {
+  private scrollToCurrent(index: number, smooth: boolean): void {
     if (index < 0 || index >= this.playlist.items.length) {
       return;
     }
-    setTimeout(() => {
-      this.scroller.scrollToIndex(index, true, ScrollAlign.CENTER);
-    }, 120);
+    this.cancelPendingScroll();
+    this.pendingScrollTimerId = setTimeout(() => {
+      this.pendingScrollTimerId = null;
+      this.scroller.scrollToIndex(index, smooth, ScrollAlign.CENTER);
+    }, 80) as number;
+  }
+
+  private cancelPendingScroll(): void {
+    if (this.pendingScrollTimerId !== null) {
+      clearTimeout(this.pendingScrollTimerId);
+      this.pendingScrollTimerId = null;
+    }
   }
 
   build() {
@@ -64,5 +87,11 @@ export struct PlaylistListView {
     .cachedCount(8)
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
+    .onScrollStart(() => {
+      this.isUserScrolling = true;
+    })
+    .onScrollStop(() => {
+      this.isUserScrolling = false;
+    })
   }
 }

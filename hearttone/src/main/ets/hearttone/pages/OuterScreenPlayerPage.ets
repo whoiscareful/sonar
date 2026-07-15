@@ -126,7 +126,8 @@ export struct OuterScreenPlayerPage {
     void this.lyricVm.loadLyrics(
       this.playback.track.id,
       this.playback.track.artist,
-      this.playback.track.title
+      this.playback.track.title,
+      this.playback.track.album
     );
   }
 

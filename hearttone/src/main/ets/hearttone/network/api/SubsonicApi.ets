@@ -10,6 +10,7 @@ import {
   SearchResponse,
   Song,
   SongDetailResponse,
+  Starred2Response,
   SubsonicApiError,
   SubsonicEnvelope
 } from '../../api/SubsonicTypes';
@@ -21,6 +22,7 @@ import { AuthContext } from '../auth/AuthContext';
 import { SubsonicResponseParser } from './SubsonicResponseParser';
 import { SubsonicUrlUtil } from './SubsonicUrlUtil';
 import { HttpTransport } from '../transport/HttpTransport';
+import { FallbackRequest } from '../transport/HttpTypes';
 import { EndpointRouter } from '../routing/EndpointRouter';
 
 interface ArtistIndexContainer {
@@ -64,11 +66,13 @@ export class SubsonicApi {
   }
 
   private static async requestEnvelope<T extends SubsonicEnvelope>(api: string,
-    extraParams: string[] = []): Promise<T> {
-    const text: string = await HttpTransport.requestWithFallback({
+    extraParams: string[] = [], mutation: boolean = false): Promise<T> {
+    const request: FallbackRequest = {
       buildUrl: (ep: EndpointType): string => AuthContext.buildRestUrl(api, extraParams, undefined, ep),
       profile: 'json'
-    });
+    };
+    const text: string = mutation ? await HttpTransport.requestMutationWithFallback(request) :
+      await HttpTransport.requestWithFallback(request);
     return SubsonicResponseParser.parseEnvelopeAsync<T>(text);
   }
 
@@ -106,6 +110,18 @@ export class SubsonicApi {
       ]);
     const rawSongs: Song[] | Song | undefined = resp.randomSongs?.song as Song[] | Song | undefined;
     return SubsonicApi.toArray<Song>(rawSongs);
+  }
+
+  static async getStarredSongs(): Promise<Song[]> {
+    const resp: Starred2Response =
+      await SubsonicApi.requestEnvelope<Starred2Response>('getStarred2.view');
+    const rawSongs: Song[] | Song | undefined = resp.starred2?.song as Song[] | Song | undefined;
+    return SubsonicApi.toArray<Song>(rawSongs);
+  }
+
+  static async setSongStarred(songId: string, starred: boolean): Promise<void> {
+    const api: string = starred ? 'star.view' : 'unstar.view';
+    await SubsonicApi.requestEnvelope<SubsonicEnvelope>(api, ['id', songId], true);
   }
 
   /** 通过 getAlbumList2 + getAlbum 展开为歌曲列表（frequent / recent / newest） */

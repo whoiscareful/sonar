@@ -1,11 +1,10 @@
 import { ComponentContent, UIContext } from '@kit.ArkUI';
 import { PlaylistSheet } from './PlaylistSheet';
 import { UiTokens } from '../../ui/tokens/UiTokens';
+import { PLAYLIST_SHEET_SCROLL_SEQ_KEY } from './PlaylistSheetState';
 
 export const PLAYLIST_SHEET_HEIGHT_MEDIUM_VP: number = 480;
 export const PLAYLIST_SHEET_HEIGHT_LARGE_VP: number = 720;
-export const PLAYLIST_SHEET_SCROLL_SEQ_KEY: string = 'playlistSheetScrollSeq';
-
 type PlaylistSheetDetents = [number, number];
 
 export const PLAYLIST_SHEET_DETENTS_VP: PlaylistSheetDetents = [

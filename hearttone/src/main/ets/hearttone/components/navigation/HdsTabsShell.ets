@@ -28,7 +28,7 @@ interface RootTabItem {
 
 const ROOT_TAB_ITEMS: RootTabItem[] = [
   { pageIndex: 0, icon: $r('app.media.tab_library'), a11yLabel: '音乐' },
-  { pageIndex: 1, icon: $r('app.media.tab_album'), a11yLabel: '专辑' },
+  { pageIndex: 1, icon: $r('app.media.tab_home'), a11yLabel: '首页' },
   { pageIndex: 2, icon: $r('app.media.tab_profile'), a11yLabel: '我的' },
 ];
 
@@ -48,7 +48,7 @@ const COLLAPSE_LABEL_FONT_SIZE: number = 0.1;
 @Component
 export struct HdsTabsShell {
   @Consume('tabScrollerBridge') tabScrollerBridge: TabScrollerBridge = new TabScrollerBridge();
-  @StorageLink('rootTabIndex') rootTabIndex: number = 0;
+  @StorageLink('rootTabIndex') rootTabIndex: number = 1;
   @StorageProp('bottomRectHeight') @Watch('onLayoutDepsChange') bottomInset: number = 0;
   @StorageLink('barToneUseLightForeground') @Watch('onBarToneFlip') barToneUseLightForeground: boolean = false;
   @Prop @Watch('onLayoutDepsChange') containerWidth: number = 360;

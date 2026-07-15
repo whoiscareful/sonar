@@ -1,5 +1,4 @@
 import { UiTokens } from '../../ui/tokens/UiTokens';
-import { GlassSurfaceHelper } from '../../ui/material/GlassSurfaceHelper';
 
 @Component
 export struct PrimaryButton {
@@ -13,11 +12,10 @@ export struct PrimaryButton {
       .width('100%')
       .height(48)
       .fontSize(16)
-      .fontColor(UiTokens.COLOR_TEXT_ON_BRAND)
+      .fontColor(this.isEnabled && !this.loading ? UiTokens.COLOR_TEXT_ON_BRAND : UiTokens.COLOR_TEXT_SECONDARY)
       .fontWeight(FontWeight.Medium)
       .borderRadius(UiTokens.RADIUS_BUTTON)
-      .backgroundBlurStyle(GlassSurfaceHelper.BLUR_STYLE, GlassSurfaceHelper.BLUR_OPTIONS)
-      .backgroundColor(this.isEnabled && !this.loading ? UiTokens.COLOR_PRIMARY : UiTokens.COLOR_PRIMARY_DISABLED_BG)
+      .backgroundColor(this.isEnabled && !this.loading ? UiTokens.COLOR_ACTION_BG : UiTokens.COLOR_PRIMARY_DISABLED_BG)
       .border({ width: 1, color: UiTokens.COLOR_GLASS_BAR_BORDER })
       .enabled(this.isEnabled && !this.loading)
       .onClick(() => {

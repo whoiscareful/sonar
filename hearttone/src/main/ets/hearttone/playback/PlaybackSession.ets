@@ -42,6 +42,8 @@ const UI_POSITION_PUBLISH_INTERVAL_MS: number = 1000;
 const MIN_SCROBBLE_TRACK_LENGTH_MS: number = 30_000;
 const MAX_SCROBBLE_PROGRESS_THRESHOLD_MS: number = 240_000;
 
+export type EnqueueNextResult = 'started' | 'inserted' | 'moved' | 'alreadyNext' | 'current';
+
 export interface SystemTransportHandler {
   playNext(manual: boolean): Promise<void>;
   playPrevious(): Promise<void>;
@@ -521,7 +523,7 @@ export class PlaybackSession implements PlaybackSwitchHost {
     }
   }
 
-  async enqueueNext(song: Song): Promise<void> {
+  async enqueueNext(song: Song): Promise<EnqueueNextResult> {
     await this.ensureInitialized();
     if (this.displayQueue.length === 0 || this.currentIndex < 0) {
       this.displayQueue = [song];
@@ -533,8 +535,44 @@ export class PlaybackSession implements PlaybackSwitchHost {
       await PlaybackSwitch.prepareSwitch(this, previewTrack, this.albumCoverFallbackId);
       await PlaybackSwitch.commitSwitch(this, true);
       this.publishPlaylist(true);
-      return;
+      return 'started';
     }
+
+    let existingIndex: number = -1;
+    for (let i: number = 0; i < this.displayQueue.length; i++) {
+      if (this.displayQueue[i].id === song.id) {
+        existingIndex = i;
+        break;
+      }
+    }
+    if (existingIndex === this.currentIndex) {
+      return 'current';
+    }
+    if (existingIndex === this.currentIndex + 1) {
+      return 'alreadyNext';
+    }
+
+    const movedExisting: boolean = existingIndex >= 0;
+    if (movedExisting) {
+      this.displayQueue = [
+        ...this.displayQueue.slice(0, existingIndex),
+        ...this.displayQueue.slice(existingIndex + 1)
+      ];
+      if (existingIndex < this.currentIndex) {
+        this.currentIndex -= 1;
+      }
+      if (this.currentMode === 'random' && this.shuffleOrder.length > 0) {
+        this.shuffleOrder = ShuffleController.remapAfterRemove(this.shuffleOrder, existingIndex);
+        const currentCursor: number = ShuffleController.findCursorForIndex(
+          this.shuffleOrder,
+          this.currentIndex
+        );
+        if (currentCursor >= 0) {
+          this.shuffleCursor = currentCursor;
+        }
+      }
+    }
+
     const nextInsertIndex: number = this.currentIndex + 1;
     const before: Song[] = this.displayQueue.slice(0, nextInsertIndex);
     const after: Song[] = this.displayQueue.slice(nextInsertIndex);
@@ -547,6 +585,7 @@ export class PlaybackSession implements PlaybackSwitchHost {
       );
     }
     this.publishPlaylist(true);
+    return movedExisting ? 'moved' : 'inserted';
   }
 
   async appendToPlaylist(songs: Song[]): Promise<number> {
@@ -625,6 +664,8 @@ export class PlaybackSession implements PlaybackSwitchHost {
     } else if (removingCurrent) {
       if (this.displayQueue.length === 0) {
         this.currentIndex = -1;
+        this.shuffleOrder = [];
+        this.shuffleCursor = 0;
         await this.stopEngineAndClearBuffers();
         this.clearPreview();
         this.pipelinePhase = 'idle';
@@ -632,11 +673,9 @@ export class PlaybackSession implements PlaybackSwitchHost {
         this.publishPlaylist(true);
         await BackgroundPlayback.stop();
         PlaybackPipeline.onTrackStopped();
-      } else if (this.currentIndex >= this.displayQueue.length) {
-        this.currentIndex = this.displayQueue.length - 1;
-        await this.playFromPlaylistIndex(this.currentIndex);
         return;
       }
+      this.currentIndex = Math.min(index, this.displayQueue.length - 1);
     }
     if (this.currentMode === 'random' && this.shuffleOrder.length > 0) {
       this.shuffleOrder = ShuffleController.remapAfterRemove(this.shuffleOrder, index);
@@ -647,6 +686,12 @@ export class PlaybackSession implements PlaybackSwitchHost {
       if (cursor >= 0) {
         this.shuffleCursor = cursor;
       }
+    }
+    if (removingCurrent) {
+      // 先发布新的队列结构，再切到逻辑上的下一首；删除末尾时自然回退到上一首。
+      this.publishPlaylist(true);
+      await this.playFromPlaylistIndex(this.currentIndex);
+      return;
     }
     this.publishPlaylist(true);
   }
@@ -1070,7 +1115,8 @@ export class PlaybackSession implements PlaybackSwitchHost {
       baseTrack.artist,
       baseTrack.album,
       baseTrack.coverArtId,
-      durationMs > 0 ? durationMs : baseTrack.durationMs
+      durationMs > 0 ? durationMs : baseTrack.durationMs,
+      baseTrack.path
     );
     const showMiniPlayer: boolean = this.previewTrack !== null || this.getCurrentSong() !== null;
     this.snapshot = new PlaybackSnapshot(
@@ -1115,7 +1161,8 @@ export class PlaybackSession implements PlaybackSwitchHost {
         track.artist,
         track.album,
         track.coverArtId,
-        durationMs
+        durationMs,
+        track.path
       );
     }
     return track;
@@ -1434,7 +1481,7 @@ export class PlaybackSession implements PlaybackSwitchHost {
       const playedAtMs: number = Date.now();
       await SubsonicClient.getInstance().submitScrobble(song.id, playedAtMs);
       SongMetadataCache.put(song);
-      await RecentPlayHistoryStore.getInstance().recordPlay(song.id, playedAtMs);
+      await RecentPlayHistoryStore.getInstance().recordPlay(song, playedAtMs);
       Logger.debug('PlaybackSession', `scrobble ok reason=${reason} id=${song.id}`);
     } catch (err) {
       Logger.warn('PlaybackSession', `scrobble failed: ${(err as Error).message}`);

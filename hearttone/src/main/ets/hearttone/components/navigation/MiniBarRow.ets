@@ -150,6 +150,11 @@ export struct MiniBarRow {
     return this.canTogglePlayback() && !this.playback.isCoverLoading();
   }
 
+  private coverPlayPauseOpacity(): number {
+    // 播放中常驻显示暂停标识，明确提示点击封面会暂停。
+    return this.playback.isPlaying() ? 1 : this.coverControlOpacity;
+  }
+
   private coverOuterSize(): number {
     return UiTokens.FLOATING_TAB_BAR_HEIGHT;
   }
@@ -226,7 +231,7 @@ export struct MiniBarRow {
             .fillColor(UiTokens.COLOR_TEXT_ON_BRAND)
         }
       }
-      .opacity(this.coverControlOpacity)
+      .opacity(this.coverPlayPauseOpacity())
       .animation({
         duration: UiTokens.MINI_BAR_COVER_CONTROL_FADE_MS,
         curve: Curve.EaseOut

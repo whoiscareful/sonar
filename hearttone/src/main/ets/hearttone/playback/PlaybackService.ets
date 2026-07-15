@@ -3,7 +3,7 @@ import { Album, Song } from '../api/SubsonicTypes';
 import { PlaybackMode, PlaybackSnapshot } from './PlaybackSnapshot';
 import { PlaylistSnapshot } from './PlaylistSnapshot';
 import { PlaylistStore } from './PlaylistStore';
-import { PlaybackSession, SystemTransportHandler } from './PlaybackSession';
+import { EnqueueNextResult, PlaybackSession, SystemTransportHandler } from './PlaybackSession';
 import { PlaybackStore } from './PlaybackStore';
 
 class ServiceTransportHandler implements SystemTransportHandler {
@@ -62,8 +62,8 @@ export class PlaybackService {
     await PlaybackService.session().playQueue(songs, index, albumCoverArtId);
   }
 
-  static async enqueueNext(song: Song): Promise<void> {
-    await PlaybackService.session().enqueueNext(song);
+  static async enqueueNext(song: Song): Promise<EnqueueNextResult> {
+    return PlaybackService.session().enqueueNext(song);
   }
 
   static async appendToPlaylist(songs: Song[]): Promise<number> {

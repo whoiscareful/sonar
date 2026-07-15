@@ -40,9 +40,18 @@ export class HttpTransport {
   }
 
   static async requestWithFallback(req: FallbackRequest): Promise<string> {
+    return await HttpTransport.requestTextWithFallback(req, http.RequestMethod.GET);
+  }
+
+  static async requestMutationWithFallback(req: FallbackRequest): Promise<string> {
+    return await HttpTransport.requestTextWithFallback(req, http.RequestMethod.POST);
+  }
+
+  private static async requestTextWithFallback(req: FallbackRequest,
+    method: http.RequestMethod): Promise<string> {
     const preferred: EndpointType = EndpointRouter.getActiveEndpoint();
     try {
-      return await HttpTransport.executeTextRequest(req.buildUrl(preferred), req.profile, req.cancelToken);
+      return await HttpTransport.executeTextRequest(req.buildUrl(preferred), req.profile, req.cancelToken, method);
     } catch (err) {
       const apiErr: SubsonicApiError = HttpTransport.asApiError(err);
       const canFallback: boolean =
@@ -54,7 +63,7 @@ export class HttpTransport {
       }
       Logger.warn('HttpTransport', `local request failed, fallback remote in same promise: ${apiErr.message}`);
       await EndpointRouter.handBackToRemote('request_fallback');
-      return await HttpTransport.executeTextRequest(req.buildUrl('remote'), req.profile, req.cancelToken);
+      return await HttpTransport.executeTextRequest(req.buildUrl('remote'), req.profile, req.cancelToken, method);
     }
   }
 
@@ -135,13 +144,13 @@ export class HttpTransport {
   }
 
   private static async executeTextRequest(url: string, profile: HttpProfile,
-    cancelToken?: CancelToken): Promise<string> {
+    cancelToken?: CancelToken, method: http.RequestMethod = http.RequestMethod.GET): Promise<string> {
     const config = getHttpProfileConfig(profile);
     let attempt: number = 1;
     while (true) {
       HttpTransport.throwIfCancelled(cancelToken);
       try {
-        return await HttpTransport.requestOnceText(url, profile, cancelToken);
+        return await HttpTransport.requestOnceText(url, profile, cancelToken, method);
       } catch (err) {
         const apiErr: SubsonicApiError = HttpTransport.asApiError(err);
         if (attempt >= config.maxAttemptsOnSameEndpoint ||
@@ -175,7 +184,7 @@ export class HttpTransport {
   }
 
   private static async requestOnceText(url: string, profile: HttpProfile,
-    cancelToken?: CancelToken): Promise<string> {
+    cancelToken?: CancelToken, method: http.RequestMethod = http.RequestMethod.GET): Promise<string> {
     const config = getHttpProfileConfig(profile);
     const req = http.createHttp();
     let unregister: (() => void) | undefined;
@@ -184,7 +193,7 @@ export class HttpTransport {
         unregister = HttpTransport.bindCancel(req, cancelToken);
       }
       const resp = await req.request(url, {
-        method: http.RequestMethod.GET,
+        method,
         header: { 'Accept': 'application/json' },
         expectDataType: http.HttpDataType.STRING,
         connectTimeout: config.connectTimeoutMs,

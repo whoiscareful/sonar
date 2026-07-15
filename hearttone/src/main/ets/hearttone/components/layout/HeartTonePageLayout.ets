@@ -1,5 +1,6 @@
 import { FloatingPageContent } from './FloatingPageContent';
 import { HeartToneScrollContent } from './HeartToneScrollContent';
+import { GlobalPageBackground } from './GlobalPageBackground';
 import {
   HeartToneContentVariant,
   HeartTonePageLayoutOptions,
@@ -7,7 +8,6 @@ import {
   HeartToneScrollMode
 } from '../../ui/layout/HeartTonePageLayoutOptions';
 import { TabScrollerBridge } from '../../ui/layout/TabScrollerBridge';
-import { UiTokens } from '../../ui/tokens/UiTokens';
 
 @Builder
 function emptyHeartToneFloatingLayer() {
@@ -107,15 +107,18 @@ export struct HeartTonePageLayout {
   }
 
   build() {
-    Column() {
-      this.buildStackBody()
+    Stack() {
+      GlobalPageBackground({
+        showImage: this.options.role !== HeartTonePageRole.STANDALONE
+      })
+      Column() {
+        this.buildStackBody()
+      }
+      .width('100%')
+      .height('100%')
     }
     .width('100%')
     .height('100%')
-    .linearGradient({
-      angle: 160,
-      colors: [[UiTokens.COLOR_BG_GRADIENT_TOP, 0], [UiTokens.COLOR_BG_GRADIENT_BOTTOM, 1]]
-    })
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .id(this.barToneProbeId())
   }

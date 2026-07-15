@@ -12,14 +12,17 @@ export class NowPlayingTrack {
   readonly album: string;
   readonly coverArtId: string;
   readonly durationMs: number;
+  readonly path: string;
 
-  constructor(id: string, title: string, artist: string, album: string, coverArtId: string, durationMs: number) {
+  constructor(id: string, title: string, artist: string, album: string, coverArtId: string,
+    durationMs: number, path: string = '') {
     this.id = id;
     this.title = title;
     this.artist = artist;
     this.album = album;
     this.coverArtId = coverArtId;
     this.durationMs = durationMs;
+    this.path = path;
   }
 }
 
@@ -86,6 +89,7 @@ export function buildNowPlayingTrack(song: Song, albumCoverArtId?: string): NowP
     song.artist,
     song.album,
     coverArtId,
-    durationMs
+    durationMs,
+    song.path ?? ''
   );
 }

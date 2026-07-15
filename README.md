@@ -1,256 +1,220 @@
 # HeartTone · 心音
 
-> A HarmonyOS music client for self-hosted Subsonic / Navidrome servers, with foldable outer-screen support, dynamic bar-tone coloring, and a layered cache system.
-> 一款专为自托管 Subsonic / Navidrome 服务器设计的 HarmonyOS 音乐客户端，支持折叠屏外屏、动态取色与分层缓存。
+> A native HarmonyOS music client for self-hosted Subsonic / Navidrome servers.
+> 面向自托管 Subsonic / Navidrome 服务器的原生 HarmonyOS 音乐客户端。
 
-**English** | [中文](#中文版)
+**English** · [中文](#中文版) · [Privacy / 隐私](./PRIVACY.md) · [Changelog / 更新日志](./CHANGELOG.md)
+
+Current source release: **1.0.0**
 
 ---
 
 ## English
 
-HeartTone (心音) is a HarmonyOS music client compatible with the SonicAPI / Subsonic protocol. It is designed for self-hosted music services such as Navidrome, with first-class support for HarmonyOS 6.1+ visual effects, foldable devices, and offline caching.
+HeartTone is an ArkTS / ArkUI music client compatible with SonicAPI and the Subsonic protocol. It is designed for private music libraries and adapts to HarmonyOS phones, tablets, 2-in-1 devices, and foldable outer screens.
 
-> This project is a secondary development based on [Sonar](https://github.com/imba97/sonar) by imba97, maintained by whoiscareful.
+This project is a secondary development based on [Sonar](https://github.com/imba97/sonar) by imba97.
 
 ### Highlights
 
-- **SonicAPI / Subsonic compatible** — authentication, browsing, streaming, search
-- **Remote + LAN endpoint switching** — automatically picks the local URL when connected to a trusted Wi-Fi SSID
-- **Three-tab layout** — Music · Library · Profile, with HDS floating tab bar on HarmonyOS 6.1+ and a fallback Tabs shell on older APIs
-- **Album library** — responsive grid (columns adapt to width), search, newest albums, album detail with play-all
-- **Music list** — random / newest songs, kind segment switcher, pull-to-refresh
-- **Now Playing** — cover-disc mode and fullscreen lyric mode with auto-hiding controls
-- **Foldable outer screen** — compact player with current + next lyric line for cover-screen playback
-- **Dynamic bar-tone coloring** — samples the album cover and animates the tab bar / title bar accent color
-- **Layered cache** — song cache and cover cache with independent size limits (1 / 2 / 5 / 10 GB) and auto-cache modes (off / always / Wi-Fi only)
-- **Background playback** — AVSession + long-running audio task + notification with play/pause controls
-- **Next-track preloading** — multiple strategies (stream warmup, song-cache download, player standby) coordinated by a single orchestrator
-- **Config import / export** — encrypted Base64 config sharing between devices
-- **Glassmorphism UI** — HarmonyOS 6.0+ immersive material, glass surface, blur effects
-- **Multi-device** — phone / tablet / 2-in-1, with outer-screen profile detection for foldables
-- **TaskPool concurrency** — JSON parsing, Subsonic response parsing, and pixel-average color sampling run off the UI thread
+- Subsonic-compatible authentication, browsing, search, streaming, favorite synchronization, and server scrobbling.
+- Remote and LAN endpoint routing, including trusted Wi-Fi based local-address switching.
+- Music feeds for favorites, random, frequently played, recently played, and newest tracks.
+- Responsive album library, album details, song sorting, multi-select actions, and play-next controls.
+- Local playlist creation, editing, sorting, artwork, transfer, and import from shared links, screenshots/OCR, or pasted song lists.
+- Full-screen synchronized lyrics with optional Music Tag Web Open API enrichment and Subsonic fallback.
+- Background playback through AVSession and a long-running audio task, plus next-track preload strategies.
+- Song and cover caches with independent capacity and automatic-download policies.
+- Listening statistics, recent history, sleep timer, profile personalization, and granular local-data deletion.
+- Explicit backup and restore for account configuration, playlists, listening history, appearance, and cache preferences.
+- Foldable outer-screen player, responsive layouts, glass surfaces, dynamic cover-color sampling, and dark mode.
+- Secrets such as the server password and optional Open API token are stored in HarmonyOS Asset Store.
 
-### Tech Stack
+### Platform
 
-- HarmonyOS `6.1.1` (API 24), compatible with `6.1.0` (API 23)
-- ArkTS / ArkUI (Stage model)
-- HarmonyOS Design System (HDS) — `HdsNavigation`, `HdsTabsShell`
-- DevEco Studio + Hvigor build system
+- Target SDK `6.1.1` (API 24)
+- Compatible SDK `6.1.0` (API 23)
+- ArkTS / ArkUI, Stage model
+- DevEco Studio and Hvigor
 
-### Getting Started
+### Build
 
-#### 1) Prerequisites
+1. Install DevEco Studio 6.1.1 Release and the matching HarmonyOS SDK.
+2. Open the repository and allow OHPM / Hvigor dependencies to synchronize.
+3. Configure application signing locally in DevEco Studio if a signed, installable HAP is required.
+4. Build the `hearttone` module for the `default` product.
 
-- DevEco Studio 6.1.1 Release (with HarmonyOS SDK installed)
-- A SonicAPI-compatible server account (e.g. Navidrome)
-- Local signing materials for HarmonyOS app build
-
-#### 2) Open Project
-
-Open this folder in DevEco Studio and let dependencies sync.
-
-#### 3) Configure Signing
-
-The tracked `build-profile.json5` intentionally contains no signing materials. Configure signing locally in DevEco Studio when a signed build is required. Never commit certificate paths, aliases, or encrypted passwords.
+The tracked `build-profile.json5` intentionally contains no certificate path, profile, keystore, alias, or password. Never commit any of the following fields with local values:
 
 - `certpath`
 - `profile`
 - `storeFile`
+- `keyAlias`
 - `keyPassword`
 - `storePassword`
 
-Keep certificate files outside the repository or under an ignored local path. Before committing, check that `git diff -- build-profile.json5` contains no signing material.
+The helper script can build and open a locally signed package after signing is configured:
 
-This repository includes a Gitleaks pre-commit hook. Enable it once per clone with `git config core.hooksPath .githooks`.
-
-#### 4) Build and Run
-
-Use DevEco Studio to run on emulator / device, or run the equivalent Hvigor tasks from terminal.
-
-### Project Structure
-
-```
-HeartTone/
-├─ AppScope/                         # App-level metadata and shared resources
-│  ├─ app.json5                      # bundleName, icon, label
-│  └─ resources/base/                # app icon (layered), app name
-└─ hearttone/                        # Entry HAP module
-   ├─ src/main/
-   │  ├─ ets/
-   │  │  ├─ entryability/            # UIAbility entry
-   │  │  ├─ backupability/          # Backup extension
-   │  │  └─ hearttone/
-   │  │     ├─ api/                  # Subsonic client and types
-   │  │     ├─ auth/                 # Credential / session persistence
-   │  │     ├─ cache/                # Song cache, cover cache, eviction, settings
-   │  │     ├─ common/               # Logger, network status, toast util
-   │  │     ├─ components/           # UI components (buttons, forms, lists, lyrics, navigation, playback, playlist, settings)
-   │  │     ├─ concurrency/          # TaskPool tasks (JSON parse, Subsonic parse, pixel average)
-   │  │     ├─ crypto/               # Config encryption, MD5, random
-   │  │     ├─ lyrics/               # Lyric parser
-   │  │     ├─ navigation/           # Navigation platform adapter
-   │  │     ├─ network/              # HTTP transport, endpoint router, media resource service
-   │  │     ├─ pages/                # UI pages (Index, Login, Music, Library, AlbumDetail, NowPlaying, OuterScreenPlayer, CacheSettings, ExportConfig, Profile)
-   │  │     ├─ playback/             # Playback service, session, pipeline, preload, background playback, AVSession
-   │  │     ├─ settings/             # Music tab settings, recent history, config codec
-   │  │     ├─ ui/                   # UI tokens, layout, material, color, adaptation
-   │  │     ├─ view/                 # SonicAPI entry module
-   │  │     └─ viewmodel/            # View models (Login, Music, Library, AlbumDetail, Lyric)
-   │  ├─ resources/                  # Strings, colors, media, profiles
-   │  └─ module.json5                # Module config, abilities, permissions
-   ├─ hvigorfile.ts
-   ├─ oh-package.json5
-   └─ build-profile.json5
+```powershell
+.\build-and-install.ps1 -InstallMode Installer -InstallerPath '<trusted-installer.exe>'
 ```
 
-### Pages
+For direct HDC installation, pass a trusted local `hdc.exe` path or set `HDC_PATH`:
 
-| Page | Description |
+```powershell
+.\build-and-install.ps1 -InstallMode Hdc -HdcPath '<hdc.exe>'
+```
+
+### Public HAP artifact
+
+The repository tracks [HeartTone-1.0.0-unsigned.hap](./artifacts/HeartTone-1.0.0-unsigned.hap) together with [SHA256SUMS.txt](./artifacts/SHA256SUMS.txt).
+
+The public artifact is deliberately **unsigned**. A HarmonyOS debug-signed HAP can embed a provisioning profile containing device identifiers, so debug signing materials and debug-signed packages are not published. Sign the unsigned HAP with your own trusted certificate/profile before installation or distribution.
+
+### Privacy and security
+
+- No signing certificates, provisioning profiles, keystores, device identifiers, access tokens, server addresses, or passwords are committed.
+- Server passwords and optional Music Tag Web tokens use HarmonyOS Asset Store.
+- Playback history, playlists, appearance data, and caches remain local unless the user explicitly exports a backup.
+- Optional online features contact only the user-configured music server, the configured Music Tag Web endpoint, or a playlist platform selected during import.
+- Gitleaks scans the working tree and Git history; the repository also includes an optional pre-commit hook.
+
+Enable the hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Read [PRIVACY.md](./PRIVACY.md) before distributing the app or sharing exported backups.
+
+### Main pages
+
+| Page | Purpose |
 |---|---|
-| `Index` | Root entry with floating tab bar and navigation host |
-| `LoginPage` | Server login + Base64 config import (two tabs) |
-| `MusicPage` | Random / newest song list with kind switcher and search |
-| `LibraryPage` | Album grid with responsive columns and search |
-| `AlbumDetailPage` | Album cover, song list, play-all / more menu |
-| `NowPlayingPage` | Cover-disc mode + fullscreen lyric mode |
-| `OuterScreenPlayerPage` | Compact player for foldable cover screen |
-| `CacheSettingsPage` | Song / cover cache size and auto-mode settings |
-| `ExportConfigPage` | Export encrypted login config as Base64 |
-| `ProfilePage` | Server info, cache stats, export config, logout |
+| `MusicPage` | Favorite/random/frequent/recent/newest feeds, search, sorting, and multi-select |
+| `LibraryPage` | Responsive album library and discovery |
+| `AlbumDetailPage` | Album information, song actions, and playlist operations |
+| `NowPlayingPage` | Cover player, synchronized lyrics, queue, favorites, and sleep timer |
+| `PlaylistLibraryPage` | Local playlist management |
+| `PlaylistImportPage` | Link, OCR, and text-based playlist import |
+| `PlaylistDetailPage` | Playlist playback, ordering, selection, and editing |
+| `PlaylistTransferPage` | Playlist copy / transfer workflow |
+| `MusicStatsPage` | Local listening metrics and optional server statistics |
+| `PersonalizationSettingsPage` | Avatar, background, blur, mask, and image API settings |
+| `DataManagementPage` | Granular deletion of caches and local personal data |
+| `ExportConfigPage` | Backup and restore |
+| `CacheSettingsPage` | Song and artwork cache policies |
+| `ProfilePage` | Server, personalization, statistics, backup, data, and sign-out entry points |
+| `OuterScreenPlayerPage` | Foldable cover-screen playback UI |
 
-### Acknowledgements
+### License and acknowledgements
 
-- Original author: [imba97](https://github.com/imba97) — Sonar project
-- Secondary development: [whoiscareful](https://github.com/whoiscareful) — HeartTone (心音)
-
-### Open Source Notes
-
-- Build artifacts, local dependencies, and IDE cache files are excluded via `.gitignore`
-- Sensitive local signing values have been replaced by placeholders
-- Project is released under the MIT License, see [LICENSE](./LICENSE)
+- Original project: [imba97/sonar](https://github.com/imba97/sonar)
+- HeartTone maintenance and secondary development: [whoiscareful](https://github.com/whoiscareful)
+- License: [MIT](./LICENSE)
 
 ---
 
 ## 中文版
 
-HeartTone（心音）是一款 HarmonyOS 音乐客户端，兼容 SonicAPI / Subsonic 协议，专为 Navidrome 等自托管音乐服务设计，深度适配 HarmonyOS 6.1+ 视觉效果、折叠屏设备与离线缓存。
+HeartTone（心音）是一款使用 ArkTS / ArkUI 开发的原生 HarmonyOS 音乐客户端，兼容 SonicAPI 与 Subsonic 协议，面向个人自托管音乐库，并适配手机、平板、二合一设备和折叠屏外屏。
 
-> 本项目基于 [Sonar](https://github.com/imba97/sonar)（作者 imba97）二次开发，由 whoiscareful 维护。
+本项目基于 imba97 的 [Sonar](https://github.com/imba97/sonar) 进行二次开发。
 
-### 特性
+### 主要特性
 
-- **SonicAPI / Subsonic 兼容** — 认证、浏览、流式播放、搜索
-- **远程 / 本地 URL 自动切换** — 连接到可信 Wi-Fi SSID 时自动使用本地地址
-- **三 Tab 布局** — 音乐 · 媒体库 · 我的，HarmonyOS 6.1+ 使用 HDS 浮动 Tab 栏，旧版 API 回退到普通 Tabs
-- **专辑媒体库** — 响应式栅格（列数随宽度自适应）、搜索、最新专辑、专辑详情页支持全部播放
-- **音乐列表** — 随机 / 最新歌曲、类型切换、下拉刷新
-- **播放详情页** — 封面唱片模式 + 全屏歌词模式（控制按钮自动隐藏）
-- **折叠屏外屏** — 精简播放器显示当前行与下一行歌词，支持合盖播放
-- **动态取色** — 从专辑封面采样并动画过渡 Tab 栏 / 标题栏强调色
-- **分层缓存** — 歌曲缓存与封面缓存独立配置，容量限制 1 / 2 / 5 / 10 GB，自动缓存模式支持 关闭 / 始终 / 仅 Wi-Fi
-- **后台播放** — AVSession + 长时音频任务 + 通知栏播放控制
-- **下一首预加载** — 多策略协同（流预热、缓存下载、播放器待机），由统一编排器调度
-- **配置导入 / 导出** — 加密 Base64 配置，便于设备间迁移
-- **玻璃拟态 UI** — 适配 HarmonyOS 6.0+ 沉浸式材质、玻璃表面、模糊效果
-- **多设备适配** — 手机 / 平板 / 二合一，折叠屏自动识别外屏配置
-- **TaskPool 并发** — JSON 解析、Subsonic 响应解析、像素平均取色均运行在子线程
+- 兼容 Subsonic 的认证、浏览、搜索、流式播放、收藏同步与服务器播放记录上报。
+- 支持远程 / 局域网端点路由，可按可信 Wi-Fi 自动切换本地地址。
+- 提供收藏、随机、常听、最近播放和最新歌曲等音乐分类。
+- 响应式专辑媒体库、专辑详情、歌曲排序、多选操作和下一首播放。
+- 支持本地歌单创建、编辑、排序、封面、转移，以及分享链接、截图 OCR 或文本歌单导入。
+- 全屏同步歌词；可选 Music Tag Web Open API 增强，失败时回退到 Subsonic 歌词。
+- 基于 AVSession 和长时音频任务的后台播放，以及多策略下一首预加载。
+- 歌曲与封面分层缓存，可分别设置容量和自动下载策略。
+- 听歌统计、最近播放、睡眠定时、个人主页外观和细粒度本地数据删除。
+- 主动触发的备份与恢复，可覆盖账号配置、歌单、听歌记录、外观和缓存偏好。
+- 折叠屏外屏播放器、响应式布局、玻璃材质、封面动态取色和深色模式。
+- 服务器密码与可选 Open API Token 使用 HarmonyOS Asset Store 保存。
 
-### 技术栈
+### 平台基线
 
-- HarmonyOS `6.1.1`（API 24），兼容 `6.1.0`（API 23）
-- ArkTS / ArkUI（Stage 模型）
-- HarmonyOS 设计系统（HDS）— `HdsNavigation`、`HdsTabsShell`
-- DevEco Studio + Hvigor 构建系统
+- 目标 SDK `6.1.1`（API 24）
+- 兼容 SDK `6.1.0`（API 23）
+- ArkTS / ArkUI，Stage 模型
+- DevEco Studio 与 Hvigor
 
-### 快速开始
+### 构建
 
-#### 1) 前置条件
+1. 安装 DevEco Studio 6.1.1 Release 及对应 HarmonyOS SDK。
+2. 打开仓库并等待 OHPM / Hvigor 依赖同步完成。
+3. 如需可安装的签名 HAP，仅在本机 DevEco Studio 中配置应用签名。
+4. 为 `default` 产品构建 `hearttone` 模块。
 
-- DevEco Studio 6.1.1 Release（已安装 HarmonyOS SDK）
-- 一个 SonicAPI 兼容服务器账号（例如 Navidrome）
-- HarmonyOS 应用构建所需的本地签名材料
-
-#### 2) 打开项目
-
-在 DevEco Studio 中打开本目录，并让依赖同步完成。
-
-#### 3) 配置签名
-
-仓库跟踪的 `build-profile.json5` 不包含任何签名材料。需要签名构建时，请在 DevEco Studio 中仅在本机配置，切勿提交证书路径、别名或加密密码。
+仓库跟踪的 `build-profile.json5` 有意不包含证书路径、profile、密钥库、别名或密码。请勿提交以下字段的本机值：
 
 - `certpath`
 - `profile`
 - `storeFile`
+- `keyAlias`
 - `keyPassword`
 - `storePassword`
 
-请将实际的证书文件存放在仓库外或本地忽略路径下。提交前执行 `git diff -- build-profile.json5`，确认其中没有签名材料。
+完成本机签名配置后，可使用辅助脚本构建并打开签名包：
 
-仓库包含 Gitleaks 提交前钩子。每次克隆后执行一次 `git config core.hooksPath .githooks` 即可启用。
-
-#### 4) 构建与运行
-
-使用 DevEco Studio 在模拟器 / 真机上运行，或在终端中执行对应的 Hvigor 任务。
-
-### 项目结构
-
-```
-HeartTone/
-├─ AppScope/                         # 应用级元数据与共享资源
-│  ├─ app.json5                      # bundleName、图标、应用名
-│  └─ resources/base/                # 应用图标（分层）、应用名
-└─ hearttone/                        # Entry HAP 模块
-   ├─ src/main/
-   │  ├─ ets/
-   │  │  ├─ entryability/            # UIAbility 入口
-   │  │  ├─ backupability/          # 备份扩展能力
-   │  │  └─ hearttone/
-   │  │     ├─ api/                  # Subsonic 客户端与类型
-   │  │     ├─ auth/                 # 凭据 / 会话持久化
-   │  │     ├─ cache/                # 歌曲缓存、封面缓存、淘汰策略、设置
-   │  │     ├─ common/               # 日志、网络状态、Toast 工具
-   │  │     ├─ components/           # UI 组件（按钮、表单、列表、歌词、导航、播放、播放列表、设置）
-   │  │     ├─ concurrency/          # TaskPool 任务（JSON 解析、Subsonic 解析、像素平均）
-   │  │     ├─ crypto/               # 配置加密、MD5、随机
-   │  │     ├─ lyrics/               # 歌词解析器
-   │  │     ├─ navigation/           # 导航平台适配
-   │  │     ├─ network/              # HTTP 传输、端点路由、媒体资源服务
-   │  │     ├─ pages/                # UI 页面（Index、登录、音乐、媒体库、专辑详情、播放详情、外屏播放器、缓存设置、导出配置、我的）
-   │  │     ├─ playback/             # 播放服务、会话、管线、预加载、后台播放、AVSession
-   │  │     ├─ settings/             # 音乐 Tab 设置、最近播放、配置编解码
-   │  │     ├─ ui/                   # UI Tokens、布局、材质、取色、适配
-   │  │     ├─ view/                 # SonicAPI 入口模块
-   │  │     └─ viewmodel/            # 视图模型（登录、音乐、媒体库、专辑详情、歌词）
-   │  ├─ resources/                  # 字符串、颜色、媒体、profile
-   │  └─ module.json5                # 模块配置、Ability、权限
-   ├─ hvigorfile.ts
-   ├─ oh-package.json5
-   └─ build-profile.json5
+```powershell
+.\build-and-install.ps1 -InstallMode Installer -InstallerPath '<可信安装器.exe>'
 ```
 
-### 页面说明
+如需通过 HDC 直接安装，请传入可信的本机 `hdc.exe` 路径或设置 `HDC_PATH`：
 
-| 页面 | 说明 |
+```powershell
+.\build-and-install.ps1 -InstallMode Hdc -HdcPath '<hdc.exe>'
+```
+
+### 公开 HAP 产物
+
+仓库跟踪 [HeartTone-1.0.0-unsigned.hap](./artifacts/HeartTone-1.0.0-unsigned.hap)，并提供 [SHA256SUMS.txt](./artifacts/SHA256SUMS.txt) 校验文件。
+
+公开产物特意保持为 **unsigned**。HarmonyOS 调试签名 HAP 可能内嵌包含设备标识的 provisioning profile，因此本仓库不会公开调试签名材料或调试签名包。安装或分发前，请使用你自己的可信证书与 profile 对 unsigned HAP 进行签名。
+
+### 隐私与安全
+
+- 仓库不提交签名证书、provisioning profile、密钥库、设备标识、访问令牌、服务器地址或密码。
+- 服务器密码和可选 Music Tag Web Token 使用 HarmonyOS Asset Store 保存。
+- 听歌记录、歌单、外观数据和缓存默认仅保存在本机，除非用户主动导出备份。
+- 可选在线功能仅访问用户配置的音乐服务器、配置的 Music Tag Web 端点，或用户导入歌单时选择的平台。
+- 使用 Gitleaks 扫描工作区与完整 Git 历史，并提供可选的提交前钩子。
+
+每次克隆后执行一次以下命令即可启用钩子：
+
+```bash
+git config core.hooksPath .githooks
+```
+
+分发应用或分享导出备份前，请阅读 [PRIVACY.md](./PRIVACY.md)。
+
+### 主要页面
+
+| 页面 | 用途 |
 |---|---|
-| `Index` | 根入口，承载浮动 Tab 栏与导航宿主 |
-| `LoginPage` | 服务器登录 + Base64 配置导入（双 Tab） |
-| `MusicPage` | 随机 / 最新歌曲列表，支持类型切换与搜索 |
-| `LibraryPage` | 专辑栅格（列数自适应）与搜索 |
-| `AlbumDetailPage` | 专辑封面、曲目列表、全部播放 / 更多菜单 |
-| `NowPlayingPage` | 封面唱片模式 + 全屏歌词模式 |
-| `OuterScreenPlayerPage` | 折叠屏外屏精简播放器 |
-| `CacheSettingsPage` | 歌曲 / 封面缓存容量与自动模式设置 |
-| `ExportConfigPage` | 导出加密登录配置为 Base64 |
-| `ProfilePage` | 服务器信息、缓存占用、导出配置、退出登录 |
+| `MusicPage` | 收藏 / 随机 / 常听 / 最近 / 最新歌曲、搜索、排序与多选 |
+| `LibraryPage` | 响应式专辑媒体库与发现 |
+| `AlbumDetailPage` | 专辑信息、歌曲操作与歌单功能 |
+| `NowPlayingPage` | 封面播放器、同步歌词、队列、收藏与睡眠定时 |
+| `PlaylistLibraryPage` | 本地歌单管理 |
+| `PlaylistImportPage` | 分享链接、OCR 和文本歌单导入 |
+| `PlaylistDetailPage` | 歌单播放、排序、多选与编辑 |
+| `PlaylistTransferPage` | 歌单复制 / 转移流程 |
+| `MusicStatsPage` | 本地听歌指标与可选服务器统计 |
+| `PersonalizationSettingsPage` | 头像、背景、模糊、遮罩与图片 API 设置 |
+| `DataManagementPage` | 细粒度删除缓存和本地个人数据 |
+| `ExportConfigPage` | 备份与恢复 |
+| `CacheSettingsPage` | 歌曲与封面缓存策略 |
+| `ProfilePage` | 服务器、个性化、统计、备份、数据和退出入口 |
+| `OuterScreenPlayerPage` | 折叠屏外屏播放界面 |
 
-### 致谢
+### 许可与致谢
 
-- 原作者：[imba97](https://github.com/imba97) — Sonar 项目
-- 二次开发：[whoiscareful](https://github.com/whoiscareful) — HeartTone（心音）
-
-### 开源说明
-
-- 构建产物、本地依赖、IDE 缓存文件均通过 `.gitignore` 排除
-- 敏感的本地签名值已被替换为占位符
-- 项目遵循 MIT 许可证，详见 [LICENSE](./LICENSE)
+- 原项目：[imba97/sonar](https://github.com/imba97/sonar)
+- HeartTone 二次开发与维护：[whoiscareful](https://github.com/whoiscareful)
+- 许可证：[MIT](./LICENSE)

@@ -2,16 +2,20 @@ import { MusicListKind } from '../../api/SubsonicTypes';
 import { UiTokens } from '../../ui/tokens/UiTokens';
 import { GlassSurfaceHelper } from '../../ui/material/GlassSurfaceHelper';
 
-export const MUSIC_KIND_INDEX_RANDOM: number = 0;
-export const MUSIC_KIND_INDEX_FREQUENT: number = 1;
-export const MUSIC_KIND_INDEX_RECENT: number = 2;
-export const MUSIC_KIND_INDEX_NEWEST: number = 3;
+export const MUSIC_KIND_INDEX_FAVORITE: number = 0;
+export const MUSIC_KIND_INDEX_RANDOM: number = 1;
+export const MUSIC_KIND_INDEX_FREQUENT: number = 2;
+export const MUSIC_KIND_INDEX_RECENT: number = 3;
+export const MUSIC_KIND_INDEX_NEWEST: number = 4;
 
 const REFRESH_ICON_SLIDE_MS: number = 200;
 const REFRESH_ICON_SLIDE_X: number = -2;
 const RANDOM_LABEL_SHIFT_X: number = -2;
 
 export function musicKindFromIndex(index: number): MusicListKind {
+  if (index === MUSIC_KIND_INDEX_FAVORITE) {
+    return 'favorite';
+  }
   if (index === MUSIC_KIND_INDEX_FREQUENT) {
     return 'frequent';
   }
@@ -25,6 +29,9 @@ export function musicKindFromIndex(index: number): MusicListKind {
 }
 
 export function musicKindToIndex(kind: MusicListKind): number {
+  if (kind === 'favorite') {
+    return MUSIC_KIND_INDEX_FAVORITE;
+  }
   if (kind === 'frequent') {
     return MUSIC_KIND_INDEX_FREQUENT;
   }
@@ -114,22 +121,27 @@ export struct MusicKindSegment {
   build() {
     Row() {
       Column() {
+        this.segmentItem('歌单', MUSIC_KIND_INDEX_FAVORITE)
+      }
+      .layoutWeight(1)
+
+      Column() {
         this.randomSegmentItem()
       }
       .layoutWeight(1)
 
       Column() {
-        this.segmentItem('最常播放', MUSIC_KIND_INDEX_FREQUENT)
+        this.segmentItem('常听', MUSIC_KIND_INDEX_FREQUENT)
       }
       .layoutWeight(1)
 
       Column() {
-        this.segmentItem('最近播放', MUSIC_KIND_INDEX_RECENT)
+        this.segmentItem('最近', MUSIC_KIND_INDEX_RECENT)
       }
       .layoutWeight(1)
 
       Column() {
-        this.segmentItem('最近添加', MUSIC_KIND_INDEX_NEWEST)
+        this.segmentItem('新增', MUSIC_KIND_INDEX_NEWEST)
       }
       .layoutWeight(1)
     }

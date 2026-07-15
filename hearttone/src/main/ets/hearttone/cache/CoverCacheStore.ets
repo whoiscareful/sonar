@@ -40,12 +40,12 @@ export class CoverCacheStore {
 
   static publishUsedBytes(bytes: number): void {
     CoverCacheStore.ensureInitialized();
-    AppStorage.setOrCreate<number>(KEY_USED_BYTES, bytes);
+    AppStorage.set<number>(KEY_USED_BYTES, bytes);
   }
 
   static publishLimitGb(limitGb: CacheLimitGb): void {
     CoverCacheStore.ensureInitialized();
-    AppStorage.setOrCreate<number>(KEY_LIMIT_GB, limitGb);
+    AppStorage.set<number>(KEY_LIMIT_GB, limitGb);
   }
 
   static getAutoCacheMode(): AutoCacheMode {
@@ -58,13 +58,13 @@ export class CoverCacheStore {
 
   static publishAutoCacheMode(mode: AutoCacheMode): void {
     CoverCacheStore.ensureInitialized();
-    AppStorage.setOrCreate<string>(KEY_AUTO_CACHE_MODE, mode);
+    AppStorage.set<string>(KEY_AUTO_CACHE_MODE, mode);
   }
 
   static bumpRevision(): void {
     CoverCacheStore.ensureInitialized();
     const current: number = CoverCacheStore.getRevision();
-    AppStorage.setOrCreate<number>(KEY_REVISION, current + 1);
+    AppStorage.set<number>(KEY_REVISION, current + 1);
   }
 
   static formatBytes(bytes: number): string {

@@ -27,12 +27,20 @@ export class CryptoUtil {
       const keyGenerator: cryptoFramework.SymKeyGenerator =
         cryptoFramework.createSymKeyGenerator('AES128');
       const keyData: cryptoFramework.DataBlob = { data: CryptoUtil.KEY_SEED };
-      CryptoUtil.symKey = keyGenerator.generateSymKeySync(keyData);
+      CryptoUtil.symKey = keyGenerator.convertKeySync(keyData);
       CryptoUtil.cipher = cryptoFramework.createCipher('AES128|ECB|PKCS5');
       CryptoUtil.initialized = true;
     } catch (err) {
       Logger.error(TAG, `init failed: ${(err as Error).message}`);
     }
+  }
+
+  private static stringToBytes(str: string): Uint8Array {
+    return new Uint8Array(buffer.from(str, 'utf-8').buffer);
+  }
+
+  private static bytesToString(bytes: Uint8Array): string {
+    return buffer.from(bytes).toString('utf-8');
   }
 
   /**
@@ -50,7 +58,7 @@ export class CryptoUtil {
     }
     try {
       CryptoUtil.cipher.initSync(cryptoFramework.CryptoMode.ENCRYPT_MODE, CryptoUtil.symKey, null);
-      const plainBytes: Uint8Array = new TextEncoder().encodeIntoUint8Array(plaintext);
+      const plainBytes: Uint8Array = CryptoUtil.stringToBytes(plaintext);
       const result: cryptoFramework.DataBlob =
         CryptoUtil.cipher.doFinalSync({ data: plainBytes });
       return buffer.from(result.data).toString('base64');
@@ -79,7 +87,7 @@ export class CryptoUtil {
         new Uint8Array(buffer.from(ciphertext, 'base64').buffer);
       const result: cryptoFramework.DataBlob =
         CryptoUtil.cipher.doFinalSync({ data: encryptedBytes });
-      return new TextDecoder().decodeToString(result.data);
+      return CryptoUtil.bytesToString(result.data);
     } catch (err) {
       // 兼容旧版明文存储：解密失败时返回原文
       Logger.warn(TAG, `decrypt failed, returning raw value: ${(err as Error).message}`);

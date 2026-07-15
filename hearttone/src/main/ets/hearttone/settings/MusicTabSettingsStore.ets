@@ -78,7 +78,7 @@ export class MusicTabSettingsStore {
   }
 
   private static normalizeKind(raw: string): MusicListKind {
-    if (raw === 'random' || raw === 'frequent' || raw === 'recent' || raw === 'newest') {
+    if (raw === 'favorite' || raw === 'random' || raw === 'frequent' || raw === 'recent' || raw === 'newest') {
       return raw;
     }
     return DEFAULT_KIND;

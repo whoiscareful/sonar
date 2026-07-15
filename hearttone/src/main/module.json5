@@ -23,6 +23,9 @@
         "name": "ohos.permission.GET_WIFI_INFO"
       },
       {
+        "name": "ohos.permission.DETECT_GESTURE"
+      },
+      {
         "name": "ohos.permission.KEEP_BACKGROUND_RUNNING",
         "reason": "$string:permission_keep_background_running_reason",
         "usedScene": {
@@ -44,7 +47,7 @@
         "name": "HeartToneAbility",
         "srcEntry": "./ets/entryability/HeartToneAbility.ets",
         "description": "$string:HeartToneAbility_desc",
-        "startWindowIcon": "$media:startIcon",
+        "startWindowIcon": "$media:splash_blank",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
         "backgroundModes": [

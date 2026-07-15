@@ -1,6 +1,8 @@
 import { common } from '@kit.AbilityKit';
 import { preferences } from '@kit.ArkData';
 import { Logger } from '../common/Logger';
+import { CryptoUtil } from '../common/CryptoUtil';
+import { LoginPasswordStore } from './LoginPasswordStore';
 
 const STORE_NAME: string = 'hearttone_auth';
 const KEY_SERVER_URL: string = 'server_url';
@@ -157,7 +159,8 @@ export class AuthStore {
       await this.store.put(KEY_LAST_REMOTE_SERVER_URL, info.remoteServerUrl);
       await this.store.put(KEY_LAST_LOCAL_SERVER_URL, info.localServerUrl);
       await this.store.put(KEY_LAST_USERNAME, info.username);
-      await this.store.put(KEY_LAST_PASSWORD, info.password);
+      await LoginPasswordStore.save(info.password);
+      await this.store.delete(KEY_LAST_PASSWORD);
       await this.store.flush();
     } catch (err) {
       Logger.warn('AuthStore', `rememberLoginInfo failed: ${(err as Error).message}`);
@@ -178,7 +181,14 @@ export class AuthStore {
       const remoteServerUrl: string = (await this.store.get(KEY_LAST_REMOTE_SERVER_URL, '')) as string;
       const localServerUrl: string = (await this.store.get(KEY_LAST_LOCAL_SERVER_URL, '')) as string;
       const username: string = (await this.store.get(KEY_LAST_USERNAME, '')) as string;
-      const password: string = (await this.store.get(KEY_LAST_PASSWORD, '')) as string;
+      let password: string = await LoginPasswordStore.get();
+      const legacyPassword: string = (await this.store.get(KEY_LAST_PASSWORD, '')) as string;
+      if (password.length === 0 && legacyPassword.length > 0) {
+        password = CryptoUtil.decrypt(legacyPassword);
+        await LoginPasswordStore.save(password);
+        await this.store.delete(KEY_LAST_PASSWORD);
+        await this.store.flush();
+      }
       return {
         remoteServerUrl,
         localServerUrl,
@@ -233,6 +243,7 @@ export class AuthStore {
           await this.store.delete(KEY_LAST_LOCAL_SERVER_URL);
           await this.store.delete(KEY_LAST_USERNAME);
           await this.store.delete(KEY_LAST_PASSWORD);
+          await LoginPasswordStore.clear();
         }
         await this.store.flush();
       } catch (err) {

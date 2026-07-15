@@ -46,6 +46,13 @@ export struct LoginPage {
   }
 
   private selectLoginTab(index: number): void {
+    if (this.loginTabIndex !== index) {
+      if (index === 0) {
+        this.vm.clearImportInputs();
+      } else {
+        this.vm.clearServerPassword();
+      }
+    }
     this.loginTabIndex = index;
     this.vm.errorMessage = '';
   }
@@ -56,21 +63,26 @@ export struct LoginPage {
     host: string,
     port: string,
     hostPlaceholder: string,
-    onProtocolToggle: () => void,
+    onProtocolChange: (v: string) => void,
     onHostChange: (v: string) => void,
     onPortChange: (v: string) => void
   ) {
     Row() {
-      Text(`${protocol}://`)
-        .fontSize(14)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(UiTokens.COLOR_PRIMARY)
-        .padding({ left: 14, right: 6 })
-        .height('100%')
-        .textAlign(TextAlign.Center)
-        .onClick(() => {
-          onProtocolToggle();
+      Select([{ value: 'http://' }, { value: 'https://' }])
+        .selected(protocol === 'https' ? 1 : 0)
+        .value(`${protocol}://`)
+        .fontColor(UiTokens.COLOR_TEXT_PRIMARY)
+        .selectedOptionFontColor(UiTokens.COLOR_TEXT_ON_BRAND)
+        .selectedOptionBgColor(UiTokens.COLOR_ACTION_BG)
+        .optionFontColor(UiTokens.COLOR_TEXT_PRIMARY)
+        .optionBgColor(UiTokens.COLOR_CARD_BG)
+        .backgroundColor(Color.Transparent)
+        .onSelect((_index: number, value: string) => {
+          onProtocolChange(value.startsWith('https') ? 'https' : 'http');
         })
+      .width(94)
+      .height('100%')
+      .padding({ left: 4, right: 2 })
 
       TextInput({ text: host, placeholder: hostPlaceholder })
         .layoutWeight(1)
@@ -120,8 +132,8 @@ export struct LoginPage {
       this.vm.serverHost,
       this.vm.serverPort,
       'navidrome.example.com',
-      () => {
-        this.vm.serverProtocol = this.vm.serverProtocol === 'https' ? 'http' : 'https';
+      (v: string) => {
+        this.vm.serverProtocol = v;
       },
       (v: string) => {
         this.vm.serverHost = v;
@@ -136,8 +148,8 @@ export struct LoginPage {
       this.vm.localServerHost,
       this.vm.localServerPort,
       '192.168.1.10 (可选)',
-      () => {
-        this.vm.localServerProtocol = this.vm.localServerProtocol === 'https' ? 'http' : 'https';
+      (v: string) => {
+        this.vm.localServerProtocol = v;
       },
       (v: string) => {
         this.vm.localServerHost = v;

@@ -2,6 +2,7 @@ import { HdsNavDestination, HdsNavDestinationTitleMode } from '@kit.UIDesignKit'
 import { HeartToneScrollContent } from '../layout/HeartToneScrollContent';
 import { HdsPageTitleBar } from '../../ui/material/HdsPageTitleBar';
 import { HeartToneContentVariant, HeartTonePageRole } from '../../ui/layout/HeartTonePageLayoutOptions';
+import { UiTokens } from '../../ui/tokens/UiTokens';
 
 @Builder
 function emptySecondaryContent() {
@@ -62,7 +63,8 @@ export struct SecondaryHdsDestination {
       HdsPageTitleBar.buildSystemBarScrollStyle()
     )
     .bindToScrollable([this.scroller])
-    .backgroundColor(Color.Transparent)
+    // 导航转场首帧必须不透明，避免短暂透出“我的”页全局背景图。
+    .backgroundColor(UiTokens.COLOR_PAGE_BG)
     .systemTransition(NavigationSystemTransitionType.CONTENT)
     .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.TOP, LayoutSafeAreaEdge.BOTTOM])
   }

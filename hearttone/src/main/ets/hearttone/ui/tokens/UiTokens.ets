@@ -47,6 +47,8 @@ export class UiTokens {
   static readonly COLOR_INPUT_BG: ResourceColor = $r('app.color.hearttone_input_bg');
   static readonly COLOR_TEXT_ON_BRAND: ResourceColor = $r('app.color.hearttone_text_on_brand');
   static readonly COLOR_TEXT_ON_BRAND_SECONDARY: ResourceColor = $r('app.color.hearttone_text_on_brand_secondary');
+  /** 明确可点击的深色行动按钮底色：不随深浅色模式变浅，避免看起来像禁用态。 */
+  static readonly COLOR_ACTION_BG: string = '#1B1D23';
   static readonly COLOR_SUCCESS_ALT: ResourceColor = $r('app.color.hearttone_success_alt');
   static readonly COLOR_PRIMARY_DISABLED_BG: ResourceColor = $r('app.color.hearttone_primary_disabled_bg');
   static readonly COLOR_ERROR: ResourceColor = $r('app.color.hearttone_error');

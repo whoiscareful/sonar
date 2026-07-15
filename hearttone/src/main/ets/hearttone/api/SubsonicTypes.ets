@@ -96,7 +96,7 @@ export interface Song {
   starred?: string;
 }
 
-export type MusicListKind = 'random' | 'frequent' | 'recent' | 'newest';
+export type MusicListKind = 'favorite' | 'random' | 'frequent' | 'recent' | 'newest';
 
 export interface RandomSongsContainer {
   song: Song[];
@@ -104,6 +104,16 @@ export interface RandomSongsContainer {
 
 export interface RandomSongsResponse extends SubsonicEnvelope {
   randomSongs: RandomSongsContainer;
+}
+
+export interface StarredContainer {
+  song?: Song[];
+  album?: Album[];
+  artist?: Artist[];
+}
+
+export interface Starred2Response extends SubsonicEnvelope {
+  starred2?: StarredContainer;
 }
 
 export interface AlbumDetailRouteParam {
